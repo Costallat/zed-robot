@@ -1,95 +1,80 @@
-; Tree-sitter queries for Robot Framework highlighting
-; Unified, opinionated capture names to improve editor theming consistency.
-; - Use conventional scope names where possible (e.g. @comment, @keyword, @function)
-; - Provide distinct captures for control flow, exceptions, variables, sections, and strings
-; - Keep patterns broad so they work across typical grammar node names used by this repo
+; Syntax highlighting for Robot Framework.
+;
+; Capture names follow the ones Zed themes understand (keyword, function,
+; variable, string, ...). Control-flow markers are captured on the token
+; itself, never on the whole statement node, so block bodies keep their own
+; colors.
 
-; Comments and miscellaneous text
 [
   (comment)
   (extra_text)
 ] @comment
 
-; Section headers (*** Settings ***, *** Test Cases ***, etc.)
-(section_header) @keyword.section
+(section_header) @title
 
-; Settings and setting names
-; - Capture the setting name specially so themes can style them consistently
-(setting_statement
-  (setting_name) @keyword
-  _
-) @keyword
+; Settings: `Library`, `Suite Setup`, `[Documentation]`, `[Tags]`, ...
+(setting_name) @keyword
+(keyword_setting_name) @attribute
+(test_case_setting_name) @attribute
+(keyword_setting [ "[" "]" ] @punctuation.bracket)
+(test_case_setting [ "[" "]" ] @punctuation.bracket)
 
-[
-  "RETURN"
-  (keyword_setting)
-  (test_case_setting)
-] @keyword
-
-; Keyword and test-case definitions (names)
+; Definitions
 (keyword_definition (name) @function)
 (test_case_definition (name) @function)
 
-; Keyword invocations (calls) and their keyword token
-(keyword_invocation (keyword) @function.call)
+; Keyword calls. Robot Framework 7 statements the grammar does not model yet
+; (`VAR`, `GROUP` and the `END` closing a `GROUP`), as well as
+; `BREAK`/`CONTINUE` inside an inline `IF`, are parsed as keyword
+; calls, so pick them out by name.
+((keyword) @keyword
+  (#match? @keyword "^(VAR|GROUP|END|BREAK|CONTINUE)$"))
+((keyword) @function.call
+  (#not-match? @function.call "^(VAR|GROUP|END|BREAK|CONTINUE)$"))
 
-; Ellipses used in continuations
-(ellipses) @punctuation.delimiter
-
-; Strings, text content and inline python fragments
-(text_chunk) @string
-(inline_python_expression) @string.special
-
-; Variables and definitions
-(variable_definition (variable_name) @variable)
-(variable_definition) @storage.modifier
-
-; Inline variable usages (scalar/list/dict)
+; Variables
 [
   (scalar_variable)
   (list_variable)
   (dictionary_variable)
 ] @variable
+(variable_assignment (variable_name) @variable)
+(variable_assignment [ "${" "}" ] @variable)
+(variable_key) @property
+(variable_definition [ "=" " =" ] @operator)
+(variable_assignment [ "=" " =" ] @operator)
 
-; Capture a variable name produced by other nodes (if present)
-(variable_definition (variable_name) @variable)
+; Values
+(text_chunk) @string
+(return_value) @string
+(inline_python_expression [ "${{" "}}" ] @punctuation.special)
 
-; Control structures: loops
-; - Mark loop keywords and loop nodes so they receive a "keyword.control.loop" style
+(ellipses) @punctuation.delimiter
+
+; Control flow
 [
+  "FOR"
   "IN"
   "IN RANGE"
   "IN ENUMERATE"
   "IN ZIP"
-  (break_statement)
-  (continue_statement)
-] @keyword.control.loop
-
-(for_statement) @keyword.control.loop
-(for_statement "END") @keyword.control.loop
-
-; While loops
-(while_statement) @keyword.control.loop
-(while_statement "END") @keyword.control.loop
-
-[
-  (if_statement)
-  (if_statement (else_statement))
-  (if_statement (elseif_statement))
-  (if_statement "END")
-] @keyword.control.conditional
-
-
-; Exceptions / try/except/finally
-[
+  "WHILE"
+  "IF"
+  "ELSE IF"
+  "ELSE"
   "TRY"
   "EXCEPT"
   "FINALLY"
-] @keyword.control.exception
-(try_statement) @exception
-(try_statement "END") @exception
-(try_statement (except_statement) @exception)
-(try_statement (finally_statement) @exception)
-(try_statement (else_statement) @exception)
+  "END"
+  "RETURN"
+  (break_statement)
+  (continue_statement)
+] @keyword
 
-; End of file
+; Common literals inside arguments
+((text_chunk) @boolean
+  (#match? @boolean "^(?i)(true|false)$"))
+((text_chunk) @constant
+  (#match? @constant "^(?i)(none|empty)$"))
+((text_chunk) @number
+  (#match? @number "^-?[0-9]+(\\.[0-9]+)?$"))

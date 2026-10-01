@@ -1,0 +1,8 @@
+(scalar_variable "${" @open "}" @close)
+(list_variable "@{" @open "}" @close)
+(dictionary_variable "&{" @open "}" @close)
+(variable_assignment "${" @open "}" @close)
+(inline_python_expression "${{" @open "}}" @close)
+(scalar_variable "[" @open "]" @close)
+(keyword_setting "[" @open "]" @close)
+(test_case_setting "[" @open "]" @close)

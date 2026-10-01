@@ -1,11 +1,15 @@
 id = "robot-framework"
 name = "Robot Framework"
-version = "0.0.1"
+version = "0.1.0"
 schema_version = 1
 authors = ["José Mendes <mendesfilho@pm.me>"]
-description = "🤖 Robot Framework support."
+description = "🤖 Robot Framework support: syntax highlighting, RobotCode language server, Robocop linting and formatting."
 repository = "https://github.com/mendes-jose/zed-robot.git"
 
 [grammars.robot]
 repository = "https://github.com/Hubro/tree-sitter-robot"
-rev = "e34def7cb0d8a66a59ec5057fe17bb4e6b17b56a"
+rev = "8f1a8d8c3875db2cd29865b5a1db7716b4eab4c3"
+
+[language_servers.robotcode]
+name = "RobotCode"
+languages = ["Robot Framework"]
