@@ -1,6 +1,6 @@
 id = "robot-framework"
 name = "Robot Framework"
-version = "0.1.0"
+version = "0.2.0"
 schema_version = 1
 authors = ["José Mendes <mendesfilho@pm.me>"]
 description = "🤖 Robot Framework support: syntax highlighting, RobotCode language server, Robocop linting and formatting."
@@ -13,3 +13,23 @@ rev = "8f1a8d8c3875db2cd29865b5a1db7716b4eab4c3"
 [language_servers.robotcode]
 name = "RobotCode"
 languages = ["Robot Framework"]
+
+# Downloads RobotCode's release package when RobotCode is not installed in the project.
+[[capabilities]]
+kind = "download_file"
+host = "github.com"
+path = ["robotcodedev", "robotcode", "releases", "download", "**"]
+
+# Installs Robocop (linting/formatting) for the project's Python interpreter,
+# into a folder owned by the extension. `command` is the interpreter path,
+# which differs per project, hence the wildcard.
+[[capabilities]]
+kind = "process:exec"
+command = "*"
+args = ["-m", "pip", "install", "**"]
+
+# Same as above for virtualenvs created by uv, which have no pip.
+[[capabilities]]
+kind = "process:exec"
+command = "*"
+args = ["pip", "install", "**"]
