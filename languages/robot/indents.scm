@@ -6,6 +6,7 @@
 (while_statement "END" @end) @indent
 (if_statement "END" @end) @indent
 (try_statement "END" @end) @indent
+(group_statement "END" @end) @indent
 
 ; Branch markers line up with the statement that opened the block.
 (elseif_statement) @outdent

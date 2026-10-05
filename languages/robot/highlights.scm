@@ -23,20 +23,19 @@
 (keyword_definition (name) @function)
 (test_case_definition (name) @function)
 
-; Keyword calls. Robot Framework 7 statements the grammar does not model yet
-; (`VAR`, `GROUP` and the `END` closing a `GROUP`), as well as
-; `BREAK`/`CONTINUE` inside an inline `IF`, are parsed as keyword
-; calls, so pick them out by name.
+; Keyword calls. `BREAK`/`CONTINUE` inside an inline `IF` are parsed as
+; keyword calls, so pick them out by name.
 ((keyword) @keyword
-  (#match? @keyword "^(VAR|GROUP|END|BREAK|CONTINUE)$"))
+  (#match? @keyword "^(BREAK|CONTINUE)$"))
 ((keyword) @function.call
-  (#not-match? @function.call "^(VAR|GROUP|END|BREAK|CONTINUE)$"))
+  (#not-match? @function.call "^(BREAK|CONTINUE)$"))
 
 ; Variables
 [
   (scalar_variable)
   (list_variable)
   (dictionary_variable)
+  (environment_variable)
 ] @variable
 (variable_assignment (variable_name) @variable)
 (variable_assignment [ "${" "}" ] @variable)
@@ -59,6 +58,8 @@
   "IN ENUMERATE"
   "IN ZIP"
   "WHILE"
+  "VAR"
+  "GROUP"
   "IF"
   "ELSE IF"
   "ELSE"

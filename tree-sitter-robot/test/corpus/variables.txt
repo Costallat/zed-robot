@@ -1,0 +1,112 @@
+================================================================================
+Nested variable names
+================================================================================
+
+*** Test Cases ***
+Nested
+    Log    ${devices.${TYPE}.ip}
+    Log    ${TIMEZONE_${index}_TZ_ABBR}    ${a${b${c}}}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name
+                      (scalar_variable
+                        (variable_name))))))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name
+                      (scalar_variable
+                        (variable_name)))))
+                (argument
+                  (scalar_variable
+                    (variable_name
+                      (scalar_variable
+                        (variable_name
+                          (scalar_variable
+                            (variable_name)))))))))))))))
+
+================================================================================
+Environment variables
+================================================================================
+
+*** Test Cases ***
+Environment
+    Log    %{HOME}    %{MISSING=default}    path=%{HOME}/bin
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (environment_variable
+                    (variable_name)))
+                (argument
+                  (environment_variable
+                    (variable_name)))
+                (argument
+                  (text_chunk)
+                  (environment_variable
+                    (variable_name))
+                  (text_chunk))))))))))
+
+================================================================================
+Percent signs in text
+================================================================================
+
+*** Test Cases ***
+Percent
+    Get Current Date    result_format=%Y%m%d_%H%M%S
+    Log    100% done
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk)))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk))))))))))

@@ -6,4 +6,5 @@
   (while_statement)
   (if_statement)
   (try_statement)
+  (group_statement)
 ] @fold

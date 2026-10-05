@@ -56,3 +56,10 @@ New Syntax
     GROUP    Named group
         Log    ${x}
     END
+    VAR    &{USER_INFO}    name=bob
+    Log    ${devices.${E7_2_TYPE}.ip}    %{HOME}    ${TIMEZONE_${index}_TZ}
+
+*** Keywords ***
+With Setup
+    [Setup]    Log    setup
+    No Operation

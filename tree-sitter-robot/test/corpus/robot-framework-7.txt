@@ -1,0 +1,142 @@
+================================================================================
+VAR statement
+================================================================================
+
+*** Test Cases ***
+Variables
+    VAR    ${name}    value
+    VAR    @{items}    a    b    scope=SUITE
+    VAR    &{user}    name=bob
+    ...    age=3
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (var_statement
+              (scalar_variable
+                (variable_name))
+              (arguments
+                (argument
+                  (text_chunk)))))
+          (statement
+            (var_statement
+              (list_variable
+                (variable_name))
+              (arguments
+                (argument
+                  (text_chunk))
+                (argument
+                  (text_chunk))
+                (argument
+                  (text_chunk)))))
+          (statement
+            (var_statement
+              (dictionary_variable
+                (variable_name))
+              (arguments
+                (argument
+                  (text_chunk))
+                (continuation
+                  (ellipses)
+                  (argument
+                    (text_chunk)))))))))))
+
+================================================================================
+GROUP block
+================================================================================
+
+*** Test Cases ***
+Grouped
+    GROUP    Setup phase
+        Log    inside
+        IF    $x    Log    nested
+    END
+    GROUP
+        No Operation
+    END
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (group_statement
+              (argument
+                (text_chunk))
+              (block
+                (statement
+                  (keyword_invocation
+                    (keyword
+                      (name_chunk))
+                    (arguments
+                      (argument
+                        (text_chunk)))))
+                (statement
+                  (inline_if_statement
+                    (argument
+                      (text_chunk))
+                    (inline_statement
+                      (keyword_invocation
+                        (keyword
+                          (name_chunk))
+                        (arguments
+                          (argument
+                            (text_chunk))))))))))
+          (statement
+            (group_statement
+              (block
+                (statement
+                  (keyword_invocation
+                    (keyword
+                      (name_chunk))))))))))))
+
+================================================================================
+Keyword setup setting
+================================================================================
+
+*** Keywords ***
+With Setup
+    [Setup]    Log    preparing
+    [Teardown]    Log    done
+    No Operation
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (keywords_section
+      (section_header)
+      (keyword_definition
+        (name
+          (name_chunk))
+        (body
+          (keyword_setting
+            (keyword_setting_name)
+            (arguments
+              (argument
+                (text_chunk))
+              (argument
+                (text_chunk))))
+          (keyword_setting
+            (keyword_setting_name)
+            (arguments
+              (argument
+                (text_chunk))
+              (argument
+                (text_chunk))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))
