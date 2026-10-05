@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Weekly, to catch new RobotCode or Robocop releases that break the setup.
+  schedule:
+    - cron: "17 6 * * 1"
 
 permissions:
   contents: read
@@ -42,11 +45,14 @@ jobs:
       - name: Build (as Zed does)
         run: cargo build --release --target wasm32-wasip2
 
-  queries:
-    name: Tree-sitter queries
+  grammar:
+    name: Grammar and queries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # pin-grammar.sh compares tree-sitter-robot/ with the pinned commit.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v5
         with:
@@ -55,5 +61,33 @@ jobs:
       - name: Install tree-sitter CLI
         run: npm install --global tree-sitter-cli@0.27.0
 
-      - name: Check queries against the pinned grammar
+      - name: Check grammar and queries
         run: ./scripts/check-queries.sh
+
+      - name: Check extension.toml points at the current grammar
+        run: ./scripts/pin-grammar.sh --check
+
+      - name: Check JSON files (snippets, debug schema, tasks)
+        run: |
+          for f in snippets/*.json debug_adapter_schemas/*.json; do
+            python3 -m json.tool "$f" > /dev/null || { echo "FAIL  $f"; exit 1; }
+            echo "ok    $f"
+          done
+          # tasks.json allows comments, like Zed does.
+          sed 's|^ *//.*||' languages/robot/tasks.json | python3 -m json.tool > /dev/null
+          echo "ok    languages/robot/tasks.json"
+
+  integration:
+    name: RobotCode + Robocop end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Language server, linting, formatting and debugger
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/integration-test.sh

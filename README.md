@@ -4,19 +4,26 @@ A [Zed](https://zed.dev) extension for [Robot Framework](https://robotframework.
 
 ## Features
 
-- **Syntax highlighting** with [tree-sitter-robot](https://github.com/Hubro/tree-sitter-robot):
-  sections, settings, test cases, tasks, keywords, variables (including
-  `${dict}[key]` access), inline Python `${{ ... }}` (highlighted as Python),
-  `FOR`/`WHILE`/`IF`/`TRY`/`RETURN`, and the Robot Framework 7 `VAR` and `GROUP` syntax.
+- **Syntax highlighting** with a tree-sitter grammar kept in this repository
+  ([`tree-sitter-robot/`](tree-sitter-robot), based on
+  [Hubro/tree-sitter-robot](https://github.com/Hubro/tree-sitter-robot)):
+  sections, settings, test cases, tasks, keywords, `FOR`/`WHILE`/`IF`/`TRY`/`RETURN`,
+  the Robot Framework 7 `VAR`, `GROUP` and keyword `[Setup]` syntax, nested
+  variables (`${devices.${type}.ip}`), environment variables (`%{HOME}`) and
+  inline Python `${{ ... }}` (highlighted as Python).
 - **Language server**: [RobotCode](https://robotcode.io): completion, hover
   docs, go to definition, find references, rename, signature help, inlay hints,
   and diagnostics from Robot Framework's own analysis.
 - **Linting**: [Robocop](https://robocop.dev) rules show up as diagnostics as you type (run by RobotCode).
 - **Formatting**: Robocop's formatter (formerly *Robotidy*) through RobotCode,
   so *Format Document* and format-on-save work.
+- **Debugging**: breakpoints, stepping through keywords and inspecting variables
+  in Zed's debugger, through RobotCode's debug adapter.
+- **Run buttons and tasks**: run or debug a single test, a whole suite, a
+  folder or everything (see [Running and debugging tests](#running-and-debugging-tests)).
+- **Snippets** for sections, tests, keywords and control structures (see [Snippets](#snippets)).
 - **Editor structure**: code folding, outline panel and breadcrumbs, auto-indent,
   bracket matching, and function/class text objects for keywords, tests and sections.
-- **Run buttons**: a run indicator next to each test case or task (see [Running tests](#running-tests)).
 
 Files with the `.robot` and `.resource` extensions are recognised.
 
@@ -76,7 +83,10 @@ container or remote machine, next to your code.
         // Python used to run RobotCode (default: the project's virtualenv, then python3)
         "python": "/path/to/python",
         // Set to false to skip installing Robocop (no linting or formatting)
-        "install_robocop": true
+        "install_robocop": true,
+        // Use a specific RobotCode release instead of the latest, e.g. to keep
+        // a team on the same version (default: latest)
+        "robotcode_version": "2.7.0"
       }
     }
   }
@@ -95,6 +105,11 @@ window (the host, not a dev container), install:
 
 Then, in a **local** Zed window, run *zed: install dev extension* and pick this
 folder. Build errors appear in Zed's log (*zed: open log*).
+
+> **Updating from version 0.2 or older:** the grammar now comes from this
+> repository instead of Hubro/tree-sitter-robot. Delete the `grammars/` folder
+> in your local copy before reinstalling, or Zed stops with
+> "grammar directory ... is not a git clone of ...".
 
 ## Project configuration: `robot.toml`
 
@@ -133,6 +148,13 @@ To see what RobotCode cannot resolve, run its analyzer in the project root:
 
 ```sh
 robotcode analyze code path/to/file.robot | grep -iE "import|DataError"
+```
+
+For autocomplete and validation while editing `robot.toml`, add RobotCode's
+schema as its first line (read by Zed's TOML language server):
+
+```toml
+#:schema https://www.robotcode.io/schemas/robot.toml.json
 ```
 
 References:
@@ -199,27 +221,63 @@ To turn off format-on-save for Robot files only:
 }
 ```
 
-## Running tests
+## Running and debugging tests
 
-Test cases and tasks get a run button in the gutter. They are tagged
-`robot-test`, and the test name is exposed as `$ZED_CUSTOM_robot_test_name`.
-Add tasks like these to your `tasks.json` (*zed: open tasks*):
+The extension comes with tasks (*task: spawn*) and run buttons in the gutter:
 
-```json
+| Where | Task |
+| --- | --- |
+| Next to a test case or task | `robot: test <name>`: runs that test |
+| Next to `*** Test Cases ***` / `*** Tasks ***` | `robot: suite <file>`: runs the file |
+| Task list only | `robot: folder <dir>`, `robot: all tests`, `robot: dry run <file>` |
+
+They run `robotcode robot`, which reads [`robot.toml`](#project-configuration-robottoml),
+so `python-path`, `[env]` and `[variables]` apply exactly as in the editor.
+This needs the RobotCode command line in the project's environment
+(`pip install robotcode`), on the `PATH` of Zed's terminal (an activated
+virtualenv, or `direnv`).
+
+**Debugging.** Every task above can also run under the debugger: open the run
+button's menu, or *debugger: start* and pick the task. Set breakpoints by
+clicking next to the line numbers; the debugger stops on keyword calls and
+shows the variables of the current test and keyword. Robot Framework's output
+goes to the debug console.
+
+For your own debug configurations, add them to `.zed/debug.json`. The
+options (the same as RobotCode's VS Code launch configurations) are listed in
+[`debug_adapter_schemas/RobotCode.json`](debug_adapter_schemas/RobotCode.json)
+and completed while you type:
+
+```jsonc
 [
   {
-    "label": "robot: $ZED_CUSTOM_robot_test_name",
-    "command": "robot",
-    "args": ["--test", "\"$ZED_CUSTOM_robot_test_name\"", "\"$ZED_FILE\""],
-    "tags": ["robot-test"]
-  },
-  {
-    "label": "robot: current file",
-    "command": "robot",
-    "args": ["\"$ZED_FILE\""]
+    "label": "Debug smoke tests",
+    "adapter": "RobotCode",
+    "request": "launch",
+    "target": "tests/smoke",       // file, folder or "." for everything
+    "include": ["smoke"],          // like robot --include
+    "variables": { "ENV": "dev" }, // like robot --variable
+    "stopOnEntry": false
   }
 ]
 ```
+
+To use your own `tasks.json`, give its Robot tasks the tags `robot-test` (the
+test name is in `$ZED_CUSTOM_robot_test_name`) or `robot-suite`. Tasks whose
+command is `robot`, `robotcode robot` or `python -m robot` can be debugged too.
+
+## Snippets
+
+Type the prefix and pick the snippet from the completion menu:
+
+| Prefix | Inserts |
+| --- | --- |
+| `*** Settings`, `*** Variables`, `*** Test Cases`, `*** Tasks`, `*** Keywords` | a section with a first entry |
+| `test`, `keyword` | a test case or keyword with documentation |
+| `for`, `forrange`, `forenumerate`, `while` | loops |
+| `if`, `ifelse`, `ifelseif` | conditionals |
+| `try` | `TRY` / `EXCEPT` / `FINALLY` |
+| `var`, `group`, `assign`, `setup` | `VAR`, `GROUP`, `${result}=    Keyword`, `[Setup]`/`[Teardown]` |
 
 ## Troubleshooting
 
@@ -234,19 +292,21 @@ Add tasks like these to your `tasks.json` (*zed: open tasks*):
   ```
 
   The *RPC Messages* view in the same panel shows each request and response.
-- **No linting or formatting**: Robocop could not be installed (check Zed's log
-  for `could not install Robocop`), or `install_robocop` is `false`. Installing
-  `robotframework-robocop` in the project's environment also works.
+- **No linting or formatting**: Robocop could not be installed (Zed's status
+  bar shows "Robocop could not be installed" with the reason), or
+  `install_robocop` is `false`. Installing `robotframework-robocop` in the
+  project's environment also works.
+- **Tasks fail with `robotcode: command not found`**: install the RobotCode
+  command line in the project's environment (`pip install robotcode`) and make
+  sure that environment is active in Zed's terminal.
 
 ## Known limitations
 
-The tree-sitter grammar does not yet model some syntax, so the lines below show
-as parse errors and can break highlighting around them. Code intelligence and
-diagnostics from RobotCode are not affected.
-
-- Nested variables, e.g. `${devices.${name}.ip}` or `${PREFIX_${index}}`.
-- The `VAR` and `GROUP` statements and keyword-level `[Setup]`. `VAR`/`GROUP`/`END`
-  are highlighted by name, but `GROUP` blocks cannot be folded.
+- Item access written after the variable, `${list}[0]` or `${dict}[key]`, is
+  highlighted as the variable followed by plain text. The `${list[0]}` form is
+  fully supported.
+- `BREAK` and `CONTINUE` inside an inline `IF` are parsed as keyword calls
+  (they are still highlighted as keywords).
 
 ## Development
 
@@ -254,22 +314,38 @@ diagnostics from RobotCode are not affected.
 rustup target add wasm32-wasip2
 cargo build --release --target wasm32-wasip2
 cargo test
-./scripts/check-queries.sh   # needs tree-sitter-cli (npm i -g tree-sitter-cli)
+./scripts/check-queries.sh       # grammar + queries; needs tree-sitter-cli (npm i -g tree-sitter-cli)
+./scripts/integration-test.sh    # RobotCode + Robocop + debugger end to end; needs python3, curl, unzip
 ```
 
-CI (`.github/workflows/ci.yml`) runs formatting, clippy, unit tests and the
-WebAssembly build, and checks every tree-sitter query against the grammar
-revision pinned in `extension.toml`.
+CI (`.github/workflows/ci.yml`) runs all of the above on every push and pull
+request, plus weekly to catch new RobotCode or Robocop releases.
+
+### Changing the grammar
+
+The grammar lives in [`tree-sitter-robot/`](tree-sitter-robot). Zed builds it
+from GitHub at the commit pinned in `extension.toml`, so a change takes two commits:
+
+1. Edit `tree-sitter-robot/grammar.js`, add a test to `tree-sitter-robot/test/corpus/`,
+   then in `tree-sitter-robot/` run `tree-sitter generate` and `tree-sitter test`.
+2. Commit (including the regenerated `src/`) and push.
+3. Run `scripts/pin-grammar.sh`, commit `extension.toml` and push.
+
+CI fails if `src/` is not regenerated or `extension.toml` points at an older grammar.
 
 ### Structure
 
-- `extension.toml`: extension manifest (grammar, language server, capabilities)
-- `src/lib.rs`: finds, installs and launches RobotCode and Robocop
-- `languages/robot/`: language configuration and tree-sitter queries
-  (`highlights`, `folds`, `indents`, `brackets`, `outline`, `textobjects`,
-  `injections`, `runnables`)
+- `extension.toml`: extension manifest (grammar, language server, debugger, capabilities)
+- `src/lib.rs`: extension entry points
+- `src/robotcode.rs`: finds, downloads and launches RobotCode; installs Robocop
+- `src/debugger.rs`: debug adapter, `debug.json` handling, task-to-debug conversion
+- `tree-sitter-robot/`: the grammar
+- `languages/robot/`: language configuration, tree-sitter queries and tasks
+- `snippets/`: snippets
+- `debug_adapter_schemas/RobotCode.json`: options accepted in `debug.json`
 - `tests/fixtures/`: sample files the queries are checked against
-- `scripts/check-queries.sh`: query check used by CI
+- `tests/integration/`: end-to-end check of RobotCode as the extension runs it
+- `scripts/`: checks used by CI and the grammar pinning script
 
 ## Contributing
 

@@ -1,18 +1,34 @@
 id = "robot-framework"
 name = "Robot Framework"
-version = "0.2.0"
+version = "0.3.0"
 schema_version = 1
 authors = ["José Mendes <mendesfilho@pm.me>"]
-description = "🤖 Robot Framework support: syntax highlighting, RobotCode language server, Robocop linting and formatting."
+description = "🤖 Robot Framework support: syntax highlighting, RobotCode language server, Robocop linting and formatting, debugging, test tasks and snippets."
 repository = "https://github.com/mendes-jose/zed-robot.git"
+snippets = "snippets/robot framework.json"
 
+# The grammar lives in this repository (tree-sitter-robot/). Zed fetches it
+# from GitHub at `rev`; update it with scripts/pin-grammar.sh after changing
+# the grammar.
 [grammars.robot]
-repository = "https://github.com/Hubro/tree-sitter-robot"
-rev = "8f1a8d8c3875db2cd29865b5a1db7716b4eab4c3"
+repository = "https://github.com/Costallat/zed-robot"
+rev = "54f4606987c0e1ae063ba50b036cc923e31164b6"
+path = "tree-sitter-robot"
 
 [language_servers.robotcode]
 name = "RobotCode"
 languages = ["Robot Framework"]
+# RobotCode only handles documents whose LSP language ID is exactly
+# "robotframework" (diagnostics are skipped otherwise); Zed would send
+# "robot framework".
+language_ids = { "Robot Framework" = "robotframework" }
+
+# Debugging through RobotCode's debug adapter; the settings schema is in
+# debug_adapter_schemas/RobotCode.json.
+[debug_adapters.RobotCode]
+
+# Lets `robot` / `robotcode robot` tasks and run buttons start a debug session.
+[debug_locators.robot]
 
 # Downloads RobotCode's release package when RobotCode is not installed in the project.
 [[capabilities]]

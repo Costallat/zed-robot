@@ -1,0 +1,185 @@
+{
+  "Settings section": {
+    "prefix": "*** Settings",
+    "description": "*** Settings *** section",
+    "body": [
+      "*** Settings ***",
+      "Documentation    ${1:Suite description}",
+      "Library    ${2:Collections}",
+      "Resource    ${3:resources/common.resource}",
+      "$0"
+    ]
+  },
+  "Variables section": {
+    "prefix": "*** Variables",
+    "description": "*** Variables *** section",
+    "body": [
+      "*** Variables ***",
+      "\\${${1:NAME}}    ${2:value}",
+      "$0"
+    ]
+  },
+  "Test Cases section": {
+    "prefix": "*** Test Cases",
+    "description": "*** Test Cases *** section with one test",
+    "body": [
+      "*** Test Cases ***",
+      "${1:Test Name}",
+      "    [Documentation]    ${2:What this test verifies}",
+      "    ${0:No Operation}"
+    ]
+  },
+  "Tasks section": {
+    "prefix": "*** Tasks",
+    "description": "*** Tasks *** section with one task",
+    "body": [
+      "*** Tasks ***",
+      "${1:Task Name}",
+      "    ${0:No Operation}"
+    ]
+  },
+  "Keywords section": {
+    "prefix": "*** Keywords",
+    "description": "*** Keywords *** section with one keyword",
+    "body": [
+      "*** Keywords ***",
+      "${1:Keyword Name}",
+      "    [Arguments]    \\${${2:arg}}",
+      "    ${0:No Operation}"
+    ]
+  },
+  "Test case": {
+    "prefix": "test",
+    "description": "Test case with documentation and tags",
+    "body": [
+      "${1:Test Name}",
+      "    [Documentation]    ${2:What this test verifies}",
+      "    [Tags]    ${3:smoke}",
+      "    ${0:No Operation}"
+    ]
+  },
+  "Keyword": {
+    "prefix": "keyword",
+    "description": "User keyword with arguments and a return value",
+    "body": [
+      "${1:Keyword Name}",
+      "    [Documentation]    ${2:What this keyword does}",
+      "    [Arguments]    \\${${3:arg}}",
+      "    ${0:No Operation}",
+      "    RETURN    \\${${4:result}}"
+    ]
+  },
+  "FOR loop": {
+    "prefix": "for",
+    "description": "FOR ... IN loop",
+    "body": [
+      "FOR    \\${${1:item}}    IN    @{${2:LIST}}",
+      "    Log    \\${${1:item}}$0",
+      "END"
+    ]
+  },
+  "FOR IN RANGE": {
+    "prefix": "forrange",
+    "description": "FOR ... IN RANGE loop",
+    "body": [
+      "FOR    \\${${1:index}}    IN RANGE    ${2:10}",
+      "    Log    \\${${1:index}}$0",
+      "END"
+    ]
+  },
+  "FOR IN ENUMERATE": {
+    "prefix": "forenumerate",
+    "description": "FOR ... IN ENUMERATE loop",
+    "body": [
+      "FOR    \\${${1:index}}    \\${${2:item}}    IN ENUMERATE    @{${3:LIST}}",
+      "    Log    \\${${1:index}}: \\${${2:item}}$0",
+      "END"
+    ]
+  },
+  "WHILE loop": {
+    "prefix": "while",
+    "description": "WHILE loop with an iteration limit",
+    "body": [
+      "WHILE    ${1:\\$condition}    limit=${2:10}",
+      "    $0",
+      "END"
+    ]
+  },
+  "IF": {
+    "prefix": "if",
+    "description": "IF block",
+    "body": [
+      "IF    ${1:\\$condition}",
+      "    $0",
+      "END"
+    ]
+  },
+  "IF ELSE": {
+    "prefix": "ifelse",
+    "description": "IF / ELSE block",
+    "body": [
+      "IF    ${1:\\$condition}",
+      "    ${2:No Operation}",
+      "ELSE",
+      "    ${0:No Operation}",
+      "END"
+    ]
+  },
+  "IF ELSE IF": {
+    "prefix": "ifelseif",
+    "description": "IF / ELSE IF / ELSE block",
+    "body": [
+      "IF    ${1:\\$condition}",
+      "    ${2:No Operation}",
+      "ELSE IF    ${3:\\$other}",
+      "    ${4:No Operation}",
+      "ELSE",
+      "    ${0:No Operation}",
+      "END"
+    ]
+  },
+  "TRY EXCEPT": {
+    "prefix": "try",
+    "description": "TRY / EXCEPT / FINALLY block",
+    "body": [
+      "TRY",
+      "    ${1:Some Keyword}",
+      "EXCEPT    ${2:Error message*}    type=${3:GLOB}    AS    \\${${4:error}}",
+      "    Log    \\${${4:error}}",
+      "FINALLY",
+      "    ${0:No Operation}",
+      "END"
+    ]
+  },
+  "VAR": {
+    "prefix": "var",
+    "description": "VAR statement (Robot Framework 7)",
+    "body": [
+      "VAR    \\${${1:name}}    ${2:value}${3:    scope=${4|LOCAL,TEST,SUITE,SUITES,GLOBAL|}}"
+    ]
+  },
+  "GROUP": {
+    "prefix": "group",
+    "description": "GROUP block (Robot Framework 7.2)",
+    "body": [
+      "GROUP    ${1:Group name}",
+      "    $0",
+      "END"
+    ]
+  },
+  "Setup and teardown": {
+    "prefix": "setup",
+    "description": "[Setup] and [Teardown] settings",
+    "body": [
+      "[Setup]    ${1:No Operation}",
+      "[Teardown]    ${0:No Operation}"
+    ]
+  },
+  "Variable assignment": {
+    "prefix": "assign",
+    "description": "Assign a keyword's return value",
+    "body": [
+      "\\${${1:result}}=    ${2:Keyword}    $0"
+    ]
+  }
+}

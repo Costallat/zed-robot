@@ -3,6 +3,7 @@ grammar = "robot"
 path_suffixes = ["robot", "resource"]
 line_comments = ["# "]
 tab_size = 4
+debuggers = ["RobotCode"]
 hard_tabs = false
 word_characters = ["$", "@", "&", "%", "{", "}"]
 brackets = [
