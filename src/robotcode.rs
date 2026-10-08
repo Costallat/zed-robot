@@ -19,6 +19,12 @@ const VENV_DIRS: [&str; 3] = [".venv", "venv", "env"];
 /// package bundles RobotCode and its pure-Python dependencies; it runs on any
 /// interpreter that has Robot Framework installed.
 const BUNDLED_LAUNCHER: &str = "extension/bundled/tool/robotcode";
+/// Seconds RobotCode may spend importing one library or variable file before
+/// giving up on it (and on all its keywords). RobotCode's own default is 10,
+/// which libraries doing real work at import time (SSH, parsers, config
+/// loading) can exceed on a cold start.
+const DEFAULT_LIBRARY_LOAD_TIMEOUT: u64 = 30;
+const LOAD_TIMEOUT_VAR: &str = "ROBOTCODE_LOAD_LIBRARY_TIMEOUT";
 
 /// Entries removed from the managed Robocop install: Robot Framework must come
 /// from the project's own environment, and the console scripts are not needed.
@@ -34,6 +40,12 @@ pub struct Options {
     pub install_robocop: bool,
     /// RobotCode release to download (e.g. "2.7.0"); latest when unset.
     pub robotcode_version: Option<String>,
+    /// Seconds allowed for importing one library (see
+    /// `DEFAULT_LIBRARY_LOAD_TIMEOUT`); `None` keeps an existing
+    /// `ROBOTCODE_LOAD_LIBRARY_TIMEOUT`, else uses the default.
+    pub library_load_timeout: Option<u64>,
+    /// RobotCode log level (TRACE, DEBUG, INFO, ...); logging is off when unset.
+    pub log_level: Option<String>,
 }
 
 impl Options {
@@ -48,7 +60,37 @@ impl Options {
                 .and_then(|v| v.as_str())
                 .map(|v| v.trim_start_matches('v').to_string())
                 .filter(|v| !v.is_empty()),
+            library_load_timeout: get("library_load_timeout").and_then(|v| v.as_u64()),
+            log_level: get("log_level")
+                .and_then(|v| v.as_str())
+                .map(|v| v.to_uppercase())
+                .filter(|v| !v.is_empty()),
         }
+    }
+
+    /// Adds the environment variables these options map to.
+    fn apply_env(&self, env: &mut Vec<(String, String)>) {
+        let has = |env: &Vec<(String, String)>, key: &str| env.iter().any(|(k, _)| k == key);
+        match self.library_load_timeout {
+            Some(seconds) => set_env(env, LOAD_TIMEOUT_VAR, &seconds.to_string()),
+            None if !has(env, LOAD_TIMEOUT_VAR) => set_env(
+                env,
+                LOAD_TIMEOUT_VAR,
+                &DEFAULT_LIBRARY_LOAD_TIMEOUT.to_string(),
+            ),
+            None => {}
+        }
+        if let Some(level) = &self.log_level {
+            set_env(env, "ROBOTCODE_LOG", "1");
+            set_env(env, "ROBOTCODE_LOG_LEVEL", level);
+        }
+    }
+}
+
+fn set_env(env: &mut Vec<(String, String)>, key: &str, value: &str) {
+    match env.iter_mut().find(|(k, _)| k == key) {
+        Some((_, v)) => *v = value.to_string(),
+        None => env.push((key.to_string(), value.to_string())),
     }
 }
 
@@ -100,6 +142,7 @@ impl RobotCode {
         if let Some(extra) = binary.as_ref().and_then(|b| b.env.clone()) {
             env.extend(extra);
         }
+        options.apply_env(&mut env);
 
         let venv = find_venv(worktree);
         let python = options
@@ -416,6 +459,37 @@ mod tests {
         assert_eq!(options.python.as_deref(), Some("/usr/bin/python3"));
         assert!(!options.install_robocop);
         assert_eq!(options.robotcode_version.as_deref(), Some("2.7.0"));
+    }
+
+    #[test]
+    fn library_timeout_and_logging_env() {
+        let env_of = |settings: serde_json::Value, mut env: Vec<(String, String)>| {
+            Options::from_settings(Some(&settings)).apply_env(&mut env);
+            env
+        };
+        let get = |env: &Vec<(String, String)>, key: &str| {
+            env.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone())
+        };
+
+        let env = env_of(serde_json::json!({}), Vec::new());
+        assert_eq!(get(&env, LOAD_TIMEOUT_VAR).as_deref(), Some("30"));
+        assert_eq!(get(&env, "ROBOTCODE_LOG"), None);
+
+        // An existing environment variable wins over the default...
+        let env = env_of(
+            serde_json::json!({}),
+            vec![(LOAD_TIMEOUT_VAR.into(), "5".into())],
+        );
+        assert_eq!(get(&env, LOAD_TIMEOUT_VAR).as_deref(), Some("5"));
+
+        // ...and the setting wins over both.
+        let env = env_of(
+            serde_json::json!({ "library_load_timeout": 60, "log_level": "info" }),
+            vec![(LOAD_TIMEOUT_VAR.into(), "5".into())],
+        );
+        assert_eq!(get(&env, LOAD_TIMEOUT_VAR).as_deref(), Some("60"));
+        assert_eq!(get(&env, "ROBOTCODE_LOG").as_deref(), Some("1"));
+        assert_eq!(get(&env, "ROBOTCODE_LOG_LEVEL").as_deref(), Some("INFO"));
     }
 
     #[test]

@@ -34,5 +34,26 @@
     "command": "robotcode",
     "args": ["robot", "--dryrun", "\"$ZED_FILE\""],
     "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  // Troubleshooting: why is a keyword "not found"?
+  {
+    "label": "robot: check imports of $ZED_FILENAME",
+    "command": "robotcode",
+    "args": ["analyze", "code", "\"$ZED_FILE\""],
+    "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    // Select a library path as written in the file, e.g. ../libs/MyLib.py
+    "label": "robot: keywords in library file $ZED_SELECTED_TEXT",
+    "command": "robotcode",
+    "args": ["libdoc", "\"$ZED_DIRNAME/$ZED_SELECTED_TEXT\"", "list"],
+    "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    // Select a library name, e.g. SSHLibrary or my_package.MyLib
+    "label": "robot: keywords in library $ZED_SELECTED_TEXT",
+    "command": "robotcode",
+    "args": ["libdoc", "\"$ZED_SELECTED_TEXT\"", "list"],
+    "cwd": "$ZED_WORKTREE_ROOT"
   }
 ]

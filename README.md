@@ -86,7 +86,12 @@ container or remote machine, next to your code.
         "install_robocop": true,
         // Use a specific RobotCode release instead of the latest, e.g. to keep
         // a team on the same version (default: latest)
-        "robotcode_version": "2.7.0"
+        "robotcode_version": "2.7.0",
+        // Seconds RobotCode may spend importing one library before giving up
+        // on it and all its keywords (default: 30; RobotCode's own is 10)
+        "library_load_timeout": 30,
+        // Turn on RobotCode's log (TRACE, DEBUG, INFO, WARNING, ERROR)
+        "log_level": "INFO"
       }
     }
   }
@@ -281,17 +286,55 @@ Type the prefix and pick the snippet from the completion menu:
 
 ## Troubleshooting
 
-- **No hover or go-to-definition for some keywords**: an import could not be
-  resolved. Check the problems panel for errors on the `Library`/`Resource`
-  lines, or run `robotcode analyze code` as shown above, then fix `robot.toml`.
-- **Language server logs**: *dev: open language server logs* → RobotCode.
-  RobotCode logs very little by default; enable more with:
+### A keyword is "not found", or has no hover or go-to-definition
 
-  ```jsonc
-  { "lsp": { "robotcode": { "binary": { "env": { "ROBOTCODE_LOG": "1", "ROBOTCODE_LOG_LEVEL": "INFO" } } } } }
-  ```
+RobotCode reads keywords by importing each library, like Robot Framework
+does when tests run. When an import fails, **all** keywords of that library
+are missing, and the reason is reported on the `Library` / `Resource` line,
+not on the keyword. Hover the underlined import, or open the problems panel
+(*diagnostics: deploy*).
 
-  The *RPC Messages* view in the same panel shows each request and response.
+Common reasons, and what to do:
+
+| Message on the import line | Cause | Fix |
+| --- | --- | --- |
+| `Resource file ... does not exist`, `No module named 'mylib'` | The folder holding it is only on the `PYTHONPATH` you export in the shell | Add the folder to `python-path` in [`robot.toml`](#project-configuration-robottoml) |
+| `ModuleNotFoundError` for a package your library imports | The package is not installed in the Python RobotCode runs on | Install it in the project's virtualenv, or point `lsp.robotcode.settings.python` at the right interpreter |
+| `KeyError`, or another error from your own code at import time | The library needs environment variables or files at import time | Add them under `[env]` in `robot.toml` |
+| `Variable '${X}' not found` on `Library    MyLib    ${X}` | Library arguments come from variables only known when tests run | Add them under `[variables]` in `robot.toml` |
+| `Loading library ... TimeoutError` | Importing took longer than allowed | Raise `library_load_timeout` (default 30 seconds) |
+| `Imported library ... contains no keywords` | A dynamic library (`get_keyword_names`) whose keywords depend on runtime state | Nothing to fix in the editor: those keywords only exist while tests run |
+
+Also check the keyword is visible to Robot Framework: functions whose names
+start with `_` are skipped, and with `ROBOT_AUTO_KEYWORDS = False` only
+functions marked with `@keyword` are keywords.
+
+**Tasks that show what Robot Framework sees** (*task: spawn*; they need
+`pip install robotcode` in the project's environment):
+
+- `robot: check imports of <file>`: every unresolved import and keyword in
+  the current file, with the reason.
+- `robot: keywords in library file <selection>`: select a library path as
+  written in the file (e.g. `../voice_libs/config_libs/ewi_voice.py`) and run
+  it to list its keywords, or get the full Python traceback of the import
+  error with file and line.
+- `robot: keywords in library <selection>`: the same for a library imported
+  by name (e.g. `SSHLibrary`).
+
+All of them read `robot.toml`, so they see exactly what the editor sees.
+
+**After editing a Python library**, RobotCode normally picks up the change
+when the file is saved. If it keeps showing old keywords, delete the
+`.robotcode_cache` folder in the project root and run *editor: restart
+language server*. (Add `.robotcode_cache/` to `.gitignore`.)
+
+### Other problems
+
+- **Language server logs**: set `"log_level": "INFO"` (see
+  [Settings for the automatic setup](#settings-for-the-automatic-setup)),
+  restart the language server, and open *dev: open language server logs* →
+  RobotCode. The *RPC Messages* view in the same panel shows each request and
+  response.
 - **No linting or formatting**: Robocop could not be installed (Zed's status
   bar shows "Robocop could not be installed" with the reason), or
   `install_robocop` is `false`. Installing `robotframework-robocop` in the
@@ -299,6 +342,12 @@ Type the prefix and pick the snippet from the completion menu:
 - **Tasks fail with `robotcode: command not found`**: install the RobotCode
   command line in the project's environment (`pip install robotcode`) and make
   sure that environment is active in Zed's terminal.
+- **Dev containers: the extension does not load at all**: check the Zed log
+  (*zed: open log*) for `Failed to install extension ... on the remote ...
+  Permission denied`. Files under `~/.local/share/zed` inside the container
+  belong to another user (often `root`); fix with
+  `sudo chown -R "$(id -u):$(id -g)" ~/.local/share/zed` in the container and
+  reopen the window.
 
 ## Known limitations
 
