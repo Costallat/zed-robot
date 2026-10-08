@@ -123,7 +123,8 @@ pub struct RobotCode {
 impl RobotCode {
     /// Picks how to launch RobotCode, in order of preference:
     /// 1. `lsp.robotcode.binary.path` from the user's settings,
-    /// 2. `robotcode` installed in the project's virtualenv,
+    /// 2. `robotcode` installed in the project's virtualenv (the activated
+    ///    `VIRTUAL_ENV`, else `.venv`/`venv`/`env` at the worktree root),
     /// 3. `robotcode` on the `$PATH` (only when the project has no virtualenv),
     /// 4. RobotCode downloaded by the extension, run with the project's Python.
     ///
@@ -144,7 +145,7 @@ impl RobotCode {
         }
         options.apply_env(&mut env);
 
-        let venv = find_venv(worktree);
+        let venv = find_venv(worktree, &env);
         let python = options
             .python
             .clone()
@@ -352,9 +353,21 @@ fn set_status(id: Option<&LanguageServerId>, status: LanguageServerInstallationS
     }
 }
 
-/// Finds a virtualenv at the worktree root.
-fn find_venv(worktree: &zed::Worktree) -> Option<Venv> {
+/// Finds the project's virtualenv: the one activated in the project's shell
+/// (`VIRTUAL_ENV`, e.g. set by direnv or an activated shell), else one at the
+/// worktree root.
+fn find_venv(worktree: &zed::Worktree, env: &[(String, String)]) -> Option<Venv> {
     let (os, _) = zed::current_platform();
+    let virtual_env = env
+        .iter()
+        .find(|(key, _)| key == "VIRTUAL_ENV")
+        .map(|(_, value)| value.as_str());
+    if let Some(venv) =
+        virtual_env.and_then(|dir| active_venv(dir, os, |name| worktree.which(name)))
+    {
+        return Some(venv);
+    }
+
     let root = worktree.root_path();
     VENV_DIRS.iter().find_map(|dir| {
         worktree.read_text_file(&format!("{dir}/pyvenv.cfg")).ok()?;
@@ -374,6 +387,21 @@ fn find_venv(worktree: &zed::Worktree) -> Option<Venv> {
             },
         })
     })
+}
+
+/// Describes the activated virtualenv at `dir`. Its `robotcode` is used when
+/// the shell's `PATH` resolves `robotcode` inside it, as activation does.
+fn active_venv(dir: &str, os: zed::Os, which: impl Fn(&str) -> Option<String>) -> Option<Venv> {
+    let dir = dir.trim_end_matches(['/', '\\']);
+    if dir.is_empty() {
+        return None;
+    }
+    let python = match os {
+        zed::Os::Windows => format!("{dir}\\Scripts\\python.exe"),
+        _ => format!("{dir}/bin/python"),
+    };
+    let robotcode = which("robotcode").filter(|path| path.starts_with(dir));
+    Some(Venv { python, robotcode })
 }
 
 fn succeeded(result: &Result<zed::process::Output>) -> bool {
@@ -490,6 +518,37 @@ mod tests {
         assert_eq!(get(&env, LOAD_TIMEOUT_VAR).as_deref(), Some("60"));
         assert_eq!(get(&env, "ROBOTCODE_LOG").as_deref(), Some("1"));
         assert_eq!(get(&env, "ROBOTCODE_LOG_LEVEL").as_deref(), Some("INFO"));
+    }
+
+    #[test]
+    fn activated_virtualenv() {
+        let which_in = |found: Option<&'static str>| move |_: &str| found.map(String::from);
+
+        let venv = active_venv(
+            "/home/me/venvs/robot/",
+            zed::Os::Linux,
+            which_in(Some("/home/me/venvs/robot/bin/robotcode")),
+        )
+        .unwrap();
+        assert_eq!(venv.python, "/home/me/venvs/robot/bin/python");
+        assert_eq!(
+            venv.robotcode.as_deref(),
+            Some("/home/me/venvs/robot/bin/robotcode")
+        );
+
+        // A robotcode outside the venv (e.g. ~/.local/bin) is not the venv's.
+        let venv = active_venv(
+            "/home/me/venvs/robot",
+            zed::Os::Linux,
+            which_in(Some("/home/me/.local/bin/robotcode")),
+        )
+        .unwrap();
+        assert_eq!(venv.robotcode, None);
+
+        let venv = active_venv("C:\\venvs\\robot", zed::Os::Windows, which_in(None)).unwrap();
+        assert_eq!(venv.python, "C:\\venvs\\robot\\Scripts\\python.exe");
+
+        assert!(active_venv("", zed::Os::Linux, which_in(None)).is_none());
     }
 
     #[test]

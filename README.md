@@ -33,7 +33,8 @@ Files with the `.robot` and `.resource` extensions are recognised.
 
 - **Python 3.10 or newer with Robot Framework installed**, in the environment
   you run your tests with. Ideally that is a virtualenv in the project root
-  (`.venv`, `venv` or `env`); the extension finds it automatically.
+  (`.venv`, `venv` or `env`), or one activated for the project (for example
+  with `direnv`); the extension finds it automatically.
 - Nothing else. The extension downloads and runs RobotCode and Robocop by itself (see below).
 
 ```sh
@@ -64,6 +65,12 @@ container or remote machine, next to your code.
 
 ### How the language server is chosen
 
+The project's virtualenv is the one **activated** for the project, i.e. the
+`VIRTUAL_ENV` variable in the project folder's shell environment (set by
+`direnv`, or a shell profile that activates it), or else a `.venv`, `venv` or
+`env` folder at the project root. Zed's own Python toolchain selection is not
+visible to extensions.
+
 1. `lsp.robotcode.binary.path` in your Zed settings, if set.
 2. `robotcode` installed in the project's virtualenv
    (`pip install "robotcode[all]"`, which includes Robocop).
@@ -71,6 +78,13 @@ container or remote machine, next to your code.
 4. Otherwise, the RobotCode downloaded by the extension, run with the Python
    from `lsp.robotcode.settings.python`, the project's virtualenv, or
    `python3`/`python` on your `PATH`.
+
+To check which one is running, look at the language server's command line
+(in a dev container, run this inside it):
+
+```sh
+ps -eo args | grep -i "language-server" | grep -v grep
+```
 
 ### Settings for the automatic setup
 
