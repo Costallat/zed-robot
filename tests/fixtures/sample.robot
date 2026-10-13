@@ -63,3 +63,11 @@ New Syntax
 With Setup
     [Setup]    Log    setup
     No Operation
+
+*** Test Cases ***
+More Syntax
+    Given user is logged in
+    Log    ${list}[0]    &{dict}[key]
+    FOR    ${i}    IN RANGE    3
+        IF    $i == 1    CONTINUE
+    END

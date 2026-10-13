@@ -142,6 +142,10 @@
       "required": true,
       "types": [
         {
+          "type": "item_access",
+          "named": true
+        },
+        {
           "type": "scalar_variable",
           "named": true
         },
@@ -506,6 +510,14 @@
       "required": true,
       "types": [
         {
+          "type": "break_statement",
+          "named": true
+        },
+        {
+          "type": "continue_statement",
+          "named": true
+        },
+        {
           "type": "keyword_invocation",
           "named": true
         },
@@ -572,6 +584,10 @@
       "types": [
         {
           "type": "arguments",
+          "named": true
+        },
+        {
+          "type": "bdd_prefix",
           "named": true
         },
         {
@@ -643,6 +659,10 @@
       "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "item_access",
+          "named": true
+        },
         {
           "type": "scalar_variable",
           "named": true
@@ -764,6 +784,10 @@
       "required": true,
       "types": [
         {
+          "type": "item_access",
+          "named": true
+        },
+        {
           "type": "scalar_variable",
           "named": true
         },
@@ -874,6 +898,10 @@
       "types": [
         {
           "type": "comment",
+          "named": true
+        },
+        {
+          "type": "extra_text",
           "named": true
         },
         {
@@ -1323,6 +1351,10 @@
     "named": false
   },
   {
+    "type": "bdd_prefix",
+    "named": true
+  },
+  {
     "type": "break_statement",
     "named": true
   },
@@ -1341,6 +1373,10 @@
   },
   {
     "type": "extra_text",
+    "named": true
+  },
+  {
+    "type": "item_access",
     "named": true
   },
   {

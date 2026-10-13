@@ -30,6 +30,15 @@ const SETTINGS_KEYWORDS = [
   "Task Timeout",
 ];
 
+// Localized section headers and settings from Robot Framework's own
+// translations; regenerate with scripts/generate-translations.py.
+const TRANSLATIONS = require("./translations.json");
+
+// English BDD prefixes. Translated prefixes are left out: some are single
+// short words (Portuguese "E" = And) that would split ordinary keyword names
+// in projects not using that language.
+const BDD_PREFIXES = ["Given", "When", "Then", "And", "But"];
+
 function caseInsensitive(keyword) {
   return new RegExp(
     keyword
@@ -42,11 +51,18 @@ function caseInsensitive(keyword) {
 /**
  * Shortcut for defining a section header
  */
-function section_header($, name) {
+function section_header($, name, translations = []) {
+  const names = [name, ...translations].map(caseInsensitive);
   return seq(
     alias(
       token(
-        seq("***", optional(" "), caseInsensitive(name), optional(" "), "***"),
+        seq(
+          "***",
+          optional(" "),
+          names.length === 1 ? names[0] : choice(...names),
+          optional(" "),
+          "***",
+        ),
       ),
       $.section_header,
     ),
@@ -73,9 +89,13 @@ module.exports = grammar({
   ],
 
   rules: {
+    // Robot Framework ignores everything before the first section, e.g. a
+    // `Language: pt-BR` line.
     source_file: ($) =>
       seq(
-        repeat(choice($.comment, $._empty_line)),
+        repeat(
+          choice($.comment, $._empty_line, seq(alias(/[^*#\s][^\r\n]*/, $.extra_text), $._line_break)),
+        ),
         repeat($.section),
       ),
 
@@ -93,7 +113,7 @@ module.exports = grammar({
     //
     comments_section: ($) =>
       seq(
-        section_header($, "Comments"),
+        section_header($, "Comments", TRANSLATIONS.headers.comments),
         repeat(choice($.comment, $._empty_line)),
       ),
 
@@ -103,12 +123,17 @@ module.exports = grammar({
 
     settings_section: ($) =>
       seq(
-        section_header($, "Settings"),
+        section_header($, "Settings", TRANSLATIONS.headers.settings),
         repeat(choice($.setting_statement, $._empty_line)),
       ),
     setting_statement: ($) =>
       seq(field("name", $.setting_name), $.arguments, $._line_break),
-    setting_name: ($) => choice(...SETTINGS_KEYWORDS.map(caseInsensitive)),
+    setting_name: ($) =>
+      choice(
+        ...[...SETTINGS_KEYWORDS, ...TRANSLATIONS.section_settings].map(
+          caseInsensitive,
+        ),
+      ),
 
     //
     // Variables section
@@ -116,7 +141,7 @@ module.exports = grammar({
 
     variables_section: ($) =>
       seq(
-        section_header($, "Variables"),
+        section_header($, "Variables", TRANSLATIONS.headers.variables),
         repeat(choice($.variable_definition, $._empty_line)),
       ),
     variable_definition: ($) =>
@@ -133,7 +158,7 @@ module.exports = grammar({
 
     keywords_section: ($) =>
       seq(
-        section_header($, "Keywords"),
+        section_header($, "Keywords", TRANSLATIONS.headers.keywords),
         repeat(choice($.keyword_definition, $._empty_line)),
       ),
     keyword_definition: ($) =>
@@ -173,13 +198,16 @@ module.exports = grammar({
       ),
     keyword_setting_name: ($) =>
       choice(
-        caseInsensitive("Documentation"),
-        caseInsensitive("Tags"),
-        caseInsensitive("Arguments"),
-        caseInsensitive("Setup"),
-        caseInsensitive("Return"),
-        caseInsensitive("Teardown"),
-        caseInsensitive("Timeout"),
+        ...[
+          "Documentation",
+          "Tags",
+          "Arguments",
+          "Setup",
+          "Return",
+          "Teardown",
+          "Timeout",
+          ...TRANSLATIONS.keyword_settings,
+        ].map(caseInsensitive),
       ),
 
     //
@@ -188,7 +216,10 @@ module.exports = grammar({
 
     test_cases_section: ($) =>
       seq(
-        choice(section_header($, "Test Cases"), section_header($, "Tasks")),
+        choice(
+          section_header($, "Test Cases", TRANSLATIONS.headers.test_cases),
+          section_header($, "Tasks", TRANSLATIONS.headers.tasks),
+        ),
         repeat(choice($.test_case_definition, $._empty_line)),
       ),
 
@@ -229,12 +260,15 @@ module.exports = grammar({
       ),
     test_case_setting_name: ($) =>
       choice(
-        caseInsensitive("Documentation"),
-        caseInsensitive("Tags"),
-        caseInsensitive("Setup"),
-        caseInsensitive("Teardown"),
-        caseInsensitive("Template"),
-        caseInsensitive("Timeout"),
+        ...[
+          "Documentation",
+          "Tags",
+          "Setup",
+          "Teardown",
+          "Template",
+          "Timeout",
+          ...TRANSLATIONS.test_settings,
+        ].map(caseInsensitive),
       ),
 
     //
@@ -290,7 +324,12 @@ module.exports = grammar({
         optional($.arguments),
       ),
 
-    keyword_invocation: ($) => seq($.keyword, optional($.arguments)),
+    keyword_invocation: ($) =>
+      seq(optional($.bdd_prefix), $.keyword, optional($.arguments)),
+
+    // Given / When / Then / And / But, followed by the keyword name
+    bdd_prefix: ($) =>
+      token(prec(1, seq(choice(...BDD_PREFIXES.map(caseInsensitive)), " "))),
 
     keyword: ($) =>
       seq(
@@ -383,7 +422,13 @@ module.exports = grammar({
     // Any statement that can occur inside an inline if/else statement
     inline_statement: ($) =>
       seq(
-        choice($.variable_assignment, $.keyword_invocation, $.return_statement),
+        choice(
+          $.variable_assignment,
+          $.keyword_invocation,
+          $.return_statement,
+          $.continue_statement,
+          $.break_statement,
+        ),
       ),
 
     try_statement: ($) =>
@@ -550,6 +595,7 @@ module.exports = grammar({
         repeat($._item_access),
         optional(" "),
         "}",
+        repeat($.item_access),
       ),
 
     list_variable: ($) =>
@@ -560,6 +606,7 @@ module.exports = grammar({
         repeat($._item_access),
         optional(" "),
         "}",
+        repeat($.item_access),
       ),
 
     dictionary_variable: ($) =>
@@ -570,6 +617,7 @@ module.exports = grammar({
         repeat($._item_access),
         optional(" "),
         "}",
+        repeat($.item_access),
       ),
 
     // %{HOME} or %{NAME=default}
@@ -578,6 +626,11 @@ module.exports = grammar({
     // ${dict}[key], ${list}[0], ${data}[${index}]
     _item_access: ($) =>
       seq("[", choice($.variable_key, $.scalar_variable), "]"),
+
+    // Item access written after the variable: ${list}[0], ${dict}[key],
+    // ${data}[${index}][name]. Directly after the closing brace, so it wins
+    // over plain text starting with "[".
+    item_access: ($) => token.immediate(prec(2, seq("[", /[^\]\r\n]*/, "]"))),
 
     inline_python_expression: ($) =>
       seq("${{", $.python_expression, "}}"),

@@ -23,12 +23,9 @@
 (keyword_definition (name) @function)
 (test_case_definition (name) @function)
 
-; Keyword calls. `BREAK`/`CONTINUE` inside an inline `IF` are parsed as
-; keyword calls, so pick them out by name.
-((keyword) @keyword
-  (#match? @keyword "^(BREAK|CONTINUE)$"))
-((keyword) @function.call
-  (#not-match? @function.call "^(BREAK|CONTINUE)$"))
+; Keyword calls, with an optional Given / When / Then / And / But prefix
+(keyword) @function.call
+(bdd_prefix) @keyword
 
 ; Variables
 [
@@ -40,6 +37,7 @@
 (variable_assignment (variable_name) @variable)
 (variable_assignment [ "${" "}" ] @variable)
 (variable_key) @property
+(item_access) @property
 (variable_definition [ "=" " =" ] @operator)
 (variable_assignment [ "=" " =" ] @operator)
 

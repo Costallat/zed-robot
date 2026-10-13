@@ -1,0 +1,218 @@
+================================================================================
+Translated headers and settings with a language line
+================================================================================
+
+Language: Brazilian Portuguese
+
+*** Configurações ***
+Documentação    Suite em português
+Biblioteca      Collections
+
+*** Casos de Teste ***
+Primeiro Teste
+    [Documentação]    Teste
+    Log    olá
+
+*** Palavras-Chave ***
+Minha Palavra
+    [Argumentos]    ${a}
+    Log    ${a}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (extra_text)
+  (section
+    (settings_section
+      (section_header)
+      (setting_statement
+        (setting_name)
+        (arguments
+          (argument
+            (text_chunk))))
+      (setting_statement
+        (setting_name)
+        (arguments
+          (argument
+            (text_chunk))))))
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (test_case_setting
+            (test_case_setting_name)
+            (arguments
+              (argument
+                (text_chunk))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk)))))))))
+  (section
+    (keywords_section
+      (section_header)
+      (keyword_definition
+        (name
+          (name_chunk))
+        (body
+          (keyword_setting
+            (keyword_setting_name)
+            (arguments
+              (argument
+                (scalar_variable
+                  (variable_name)))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name)))))))))))
+
+================================================================================
+BDD prefixes
+================================================================================
+
+*** Test Cases ***
+Scenario
+    Given user is logged in
+    When user opens the page
+    Then page is shown
+    And nothing failed
+    But log is empty
+    Andrew Is Not A Prefix
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (bdd_prefix)
+              (keyword
+                (name_chunk))))
+          (statement
+            (keyword_invocation
+              (bdd_prefix)
+              (keyword
+                (name_chunk))))
+          (statement
+            (keyword_invocation
+              (bdd_prefix)
+              (keyword
+                (name_chunk))))
+          (statement
+            (keyword_invocation
+              (bdd_prefix)
+              (keyword
+                (name_chunk))))
+          (statement
+            (keyword_invocation
+              (bdd_prefix)
+              (keyword
+                (name_chunk))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))
+
+================================================================================
+BREAK and CONTINUE in inline IF
+================================================================================
+
+*** Test Cases ***
+Loop
+    FOR    ${i}    IN RANGE    10
+        IF    $i == 3    CONTINUE
+        IF    $i == 5    BREAK
+    END
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (for_statement
+              (variable_list
+                (scalar_variable
+                  (variable_name)))
+              (in_range
+                (argument
+                  (text_chunk)))
+              (block
+                (statement
+                  (inline_if_statement
+                    (argument
+                      (text_chunk))
+                    (inline_statement
+                      (continue_statement))))
+                (statement
+                  (inline_if_statement
+                    (argument
+                      (text_chunk))
+                    (inline_statement
+                      (break_statement))))))))))))
+
+================================================================================
+Item access after the variable
+================================================================================
+
+*** Test Cases ***
+Access
+    Log    ${list}[0]    ${dict}[key]    @{nested}[1][name]
+    Log    ${data}[${index}]    [not an index]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name)
+                    (item_access)))
+                (argument
+                  (scalar_variable
+                    (variable_name)
+                    (item_access)))
+                (argument
+                  (list_variable
+                    (variable_name)
+                    (item_access)
+                    (item_access))))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name)
+                    (item_access)))
+                (argument
+                  (text_chunk))))))))))

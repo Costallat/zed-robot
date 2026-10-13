@@ -25,6 +25,7 @@ Test That Something Works
                 (name_chunk))))
           (statement
             (keyword_invocation
+              (bdd_prefix)
               (keyword
                 (name_chunk))))
           (statement

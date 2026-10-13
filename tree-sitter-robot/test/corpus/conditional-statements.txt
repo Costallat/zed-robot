@@ -175,8 +175,8 @@ Test
                               (argument
                                 (text_chunk)
                                 (scalar_variable
-                                  (variable_name))
-                                (text_chunk))))))
+                                  (variable_name)
+                                  (item_access)))))))
                       alternative: (else_statement
                         consequence: (block
                           (statement

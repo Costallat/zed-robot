@@ -679,16 +679,16 @@ LONGEST mode with custom fill value
                     (arguments
                       (argument
                         (scalar_variable
-                          (variable_name))
-                        (text_chunk))
+                          (variable_name)
+                          (item_access)))
                       (argument
                         (scalar_variable
-                          (variable_name))
-                        (text_chunk))
+                          (variable_name)
+                          (item_access)))
                       (argument
                         (scalar_variable
-                          (variable_name))
-                        (text_chunk))))))))))
+                          (variable_name)
+                          (item_access)))))))))))
       (keyword_definition
         (name
           (name_chunk))
