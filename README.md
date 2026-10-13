@@ -55,7 +55,9 @@ When a Robot Framework file is opened and RobotCode is not installed in the
 project, the extension:
 
 1. downloads the latest [RobotCode release](https://github.com/robotcodedev/robotcode/releases)
-   (the same package the VS Code extension uses) into its own folder,
+   into its own folder. The release file is a `.vsix` archive (RobotCode
+   publishes its server that way); the extension only unpacks it and runs the
+   RobotCode language server inside, nothing else from it,
 2. runs it with the project's Python, so RobotCode sees your Robot Framework
    version and your libraries,
 3. installs [Robocop](https://robocop.dev) for that Python with `pip` (or `uv`,
@@ -199,10 +201,11 @@ References:
 
 ### Language server
 
-Settings under `lsp.robotcode.settings.robotcode` are sent to RobotCode. They
-use the names of RobotCode's VS Code settings, nested by their dots
-(`robotcode.analysis.diagnosticMode` becomes `"robotcode": { "analysis": { "diagnosticMode": ... } }`),
-for example:
+Settings under `lsp.robotcode.settings.robotcode` are passed to the RobotCode
+language server, which asks the editor for them when it starts. They are the
+server's own options; RobotCode documents them with dotted names such as
+`robotcode.analysis.diagnosticMode`, which you write nested:
+`"robotcode": { "analysis": { "diagnosticMode": ... } }`. For example:
 
 ```jsonc
 {
@@ -228,7 +231,13 @@ command line and for the rest of your team.
 ### Editor features to turn on
 
 These come from RobotCode but are off in Zed by default. Add what you want to
-your settings (or `.zed/settings.json` for one project):
+your settings (or `.zed/settings.json` for one project).
+
+`semantic_tokens`, `document_folding_ranges`, `document_symbols` and
+`code_lens` are recent Zed settings. If Zed marks one of them as unknown, your
+Zed is older than that feature: update Zed (*zed: check for updates*) or leave
+that line out. Everything under `lsp.robotcode.settings` works with any Zed
+version, because Zed passes it to RobotCode unchanged.
 
 ```jsonc
 {
@@ -317,7 +326,7 @@ shows the variables of the current test and keyword. Robot Framework's output
 goes to the debug console.
 
 For your own debug configurations, add them to `.zed/debug.json`. The
-options (the same as RobotCode's VS Code launch configurations) are listed in
+options are RobotCode's debugger launch options, listed in
 [`debug_adapter_schemas/RobotCode.json`](debug_adapter_schemas/RobotCode.json)
 and completed while you type:
 
@@ -371,8 +380,9 @@ To also stop at breakpoints in the Python code of your keyword libraries:
 5. Start *Attach to Robot's Python* (*debugger: start*). Breakpoints in `.py`
    files now work, alongside the ones in `.robot` files.
 
-The two steps are needed because RobotCode announces its Python debugger in a
-way only VS Code reacts to. If port 5678 is busy, RobotCode picks another one
+The two steps are needed because RobotCode announces its Python debugger
+with a custom message that Zed does not act on, so the Python side has to be
+attached by hand. If port 5678 is busy, RobotCode picks another one
 and prints it in the debug console; set `"attachPythonPort"` in the Robot
 configuration and the same `port` in the attach configuration.
 

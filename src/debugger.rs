@@ -76,7 +76,7 @@ pub fn binary(
 ///
 /// With Python debugging (`attachPython`, or the `debug_python` setting),
 /// RobotCode starts debugpy in the test run. Zed cannot attach to it on its
-/// own (RobotCode announces it with a VS Code-specific event), so the run
+/// own (RobotCode announces it with a custom event Zed ignores), so the run
 /// waits for the user to start the "Debugpy" attach configuration.
 fn fill_defaults(
     config: &mut serde_json::Value,

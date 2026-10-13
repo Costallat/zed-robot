@@ -15,7 +15,7 @@ use zed_extension_api::{
 pub const SERVER_ID: &str = "robotcode";
 const ROBOTCODE_REPO: &str = "robotcodedev/robotcode";
 const VENV_DIRS: [&str; 3] = [".venv", "venv", "env"];
-/// Path of RobotCode's launcher inside its VS Code package (`.vsix`). The
+/// Path of RobotCode's launcher inside its release package (`.vsix`). The
 /// package bundles RobotCode and its pure-Python dependencies; it runs on any
 /// interpreter that has Robot Framework installed.
 const BUNDLED_LAUNCHER: &str = "extension/bundled/tool/robotcode";
