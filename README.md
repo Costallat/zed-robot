@@ -230,14 +230,12 @@ command line and for the rest of your team.
 
 ### Editor features to turn on
 
-These come from RobotCode but are off in Zed by default. Add what you want to
-your settings (or `.zed/settings.json` for one project).
-
-`semantic_tokens`, `document_folding_ranges`, `document_symbols` and
-`code_lens` are recent Zed settings. If Zed marks one of them as unknown, your
-Zed is older than that feature: update Zed (*zed: check for updates*) or leave
-that line out. Everything under `lsp.robotcode.settings` works with any Zed
-version, because Zed passes it to RobotCode unchanged.
+These come from RobotCode but are off in Zed by default (checked against Zed
+1.23). Add what you want to your settings. Everything here works in your user
+settings (*zed: open settings*); all of it except `code_lens` also works in a
+project's `.zed/settings.json`. `code_lens` is an editor-wide setting that Zed
+only accepts in user settings, and reports as an unknown property in
+`.zed/settings.json`.
 
 ```jsonc
 {
@@ -253,8 +251,8 @@ version, because Zed passes it to RobotCode unchanged.
       "inlay_hints": { "enabled": true }
     }
   },
-  // "N references" above keywords and tests (an editor-wide setting; also
-  // needs referencesCodeLens below)
+  // "N references" above keywords and tests. User settings only (not
+  // .zed/settings.json); also needs referencesCodeLens below.
   "code_lens": "on",
   "lsp": {
     "robotcode": {
