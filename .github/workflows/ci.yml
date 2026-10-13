@@ -67,15 +67,17 @@ jobs:
       - name: Check extension.toml points at the current grammar
         run: ./scripts/pin-grammar.sh --check
 
-      - name: Check JSON files (snippets, debug schema, tasks)
+      - name: Check JSON files (snippets, debug schema, tasks, semantic tokens)
         run: |
           for f in snippets/*.json debug_adapter_schemas/*.json; do
             python3 -m json.tool "$f" > /dev/null || { echo "FAIL  $f"; exit 1; }
             echo "ok    $f"
           done
-          # tasks.json allows comments, like Zed does.
-          sed 's|^ *//.*||' languages/robot/tasks.json | python3 -m json.tool > /dev/null
-          echo "ok    languages/robot/tasks.json"
+          # These allow comments, like Zed does.
+          for f in languages/robot/tasks.json languages/robot/semantic_token_rules.json; do
+            sed 's|^ *//.*||' "$f" | python3 -m json.tool > /dev/null || { echo "FAIL  $f"; exit 1; }
+            echo "ok    $f"
+          done
 
   integration:
     name: RobotCode + Robocop end to end

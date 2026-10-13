@@ -7,7 +7,7 @@ use zed_extension_api::{
     StartDebuggingRequestArgumentsRequest, TaskTemplate,
 };
 
-use robotcode::{RobotCode, SERVER_ID};
+use robotcode::{Options, RobotCode, SERVER_ID};
 
 const SERVER_ARGS: [&str; 2] = ["language-server", "--stdio"];
 
@@ -56,10 +56,11 @@ impl zed::Extension for RobotFrameworkExtension {
         _id: &LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<Option<serde_json::Value>> {
-        let settings = LspSettings::for_worktree(SERVER_ID, worktree)
+        let mut settings = LspSettings::for_worktree(SERVER_ID, worktree)
             .ok()
             .and_then(|s| s.settings)
             .unwrap_or_else(|| serde_json::json!({ "robotcode": {} }));
+        Options::from_settings(Some(&settings)).apply_workspace_configuration(&mut settings);
         Ok(Some(add_dotted_sections(&settings)))
     }
 

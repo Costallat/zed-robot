@@ -6,13 +6,18 @@ use zed_extension_api::{
     StartDebuggingRequestArgumentsRequest, TaskTemplate,
 };
 
-use crate::robotcode::RobotCode;
+use crate::robotcode::{Options, RobotCode, SERVER_ID};
+use zed_extension_api::settings::LspSettings;
 
 /// Name of the debug adapter in `extension.toml` and in `debug.json`.
 pub const ADAPTER_NAME: &str = "RobotCode";
 /// Name of the locator that turns `robot` / `robotcode robot` tasks into
 /// debug sessions.
 pub const LOCATOR_NAME: &str = "robot";
+/// Port debugpy listens on when Python debugging is on (RobotCode's default).
+const DEBUGPY_PORT: u64 = 5678;
+/// Seconds the run waits for Zed's Python debugger to attach.
+const DEBUGPY_ATTACH_TIMEOUT: u64 = 120;
 
 pub fn binary(
     robotcode: &mut RobotCode,
@@ -39,11 +44,18 @@ pub fn binary(
         serde_json::from_str(&config.config).map_err(|e| format!("invalid debug config: {e}"))?;
     let request =
         request_kind(&configuration).unwrap_or(StartDebuggingRequestArgumentsRequest::Launch);
+    let options = Options::from_settings(
+        LspSettings::for_worktree(SERVER_ID, worktree)
+            .ok()
+            .and_then(|s| s.settings)
+            .as_ref(),
+    );
     fill_defaults(
         &mut configuration,
         &config.label,
         &worktree.root_path(),
         launch.python.as_deref(),
+        options.debug_python,
     );
 
     Ok(DebugAdapterBinary {
@@ -61,7 +73,18 @@ pub fn binary(
 
 /// Fills in what RobotCode's launcher needs but a hand-written `debug.json`
 /// entry usually leaves out.
-fn fill_defaults(config: &mut serde_json::Value, label: &str, root: &str, python: Option<&str>) {
+///
+/// With Python debugging (`attachPython`, or the `debug_python` setting),
+/// RobotCode starts debugpy in the test run. Zed cannot attach to it on its
+/// own (RobotCode announces it with a VS Code-specific event), so the run
+/// waits for the user to start the "Debugpy" attach configuration.
+fn fill_defaults(
+    config: &mut serde_json::Value,
+    label: &str,
+    root: &str,
+    python: Option<&str>,
+    debug_python: bool,
+) {
     let Some(map) = config.as_object_mut() else {
         return;
     };
@@ -77,6 +100,24 @@ fn fill_defaults(config: &mut serde_json::Value, label: &str, root: &str, python
     default("outputLog", true.into());
     if let Some(python) = python {
         default("python", python.into());
+    }
+    if debug_python {
+        default("attachPython", true.into());
+    }
+
+    if map.get("attachPython").and_then(|v| v.as_bool()) == Some(true) {
+        map.entry("attachPythonPort").or_insert(DEBUGPY_PORT.into());
+        map.entry("debuggerTimeout")
+            .or_insert(DEBUGPY_ATTACH_TIMEOUT.into());
+        let args = map
+            .entry("debuggerArgs")
+            .or_insert_with(|| serde_json::json!([]));
+        if let Some(args) = args.as_array_mut() {
+            let wait = "--debugpy-wait-for-client";
+            if !args.iter().any(|a| a.as_str() == Some(wait)) {
+                args.push(wait.into());
+            }
+        }
     }
 }
 
@@ -222,12 +263,48 @@ mod tests {
             "Run a",
             "/project",
             Some("/project/.venv/bin/python"),
+            false,
         );
         assert_eq!(config["request"], "launch");
         assert_eq!(config["cwd"], "/project");
         assert_eq!(config["console"], "integratedTerminal");
         assert_eq!(config["python"], "/project/.venv/bin/python");
         assert_eq!(config["name"], "Run a");
+        assert!(config.get("attachPython").is_none());
+        assert!(config.get("debuggerArgs").is_none());
+    }
+
+    #[test]
+    fn python_debugging_waits_for_the_python_debugger() {
+        // Turned on by the `debug_python` setting...
+        let mut config = serde_json::json!({ "target": "a.robot" });
+        fill_defaults(&mut config, "Run a", "/p", None, true);
+        assert_eq!(config["attachPython"], true);
+        assert_eq!(config["attachPythonPort"], 5678);
+        assert_eq!(config["debuggerTimeout"], 120);
+        assert_eq!(
+            config["debuggerArgs"],
+            serde_json::json!(["--debugpy-wait-for-client"])
+        );
+
+        // ...or in debug.json, keeping the user's own values.
+        let mut config = serde_json::json!({
+            "attachPython": true,
+            "attachPythonPort": 6000,
+            "debuggerArgs": ["--debugpy-wait-for-client", "--output-timestamps"]
+        });
+        fill_defaults(&mut config, "Run a", "/p", None, false);
+        assert_eq!(config["attachPythonPort"], 6000);
+        assert_eq!(
+            config["debuggerArgs"],
+            serde_json::json!(["--debugpy-wait-for-client", "--output-timestamps"])
+        );
+
+        // debug.json can opt out even when the setting is on.
+        let mut config = serde_json::json!({ "attachPython": false });
+        fill_defaults(&mut config, "Run a", "/p", None, true);
+        assert_eq!(config["attachPython"], false);
+        assert!(config.get("debuggerArgs").is_none());
     }
 
     #[test]

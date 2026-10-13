@@ -11,6 +11,16 @@
       "description": "Specifies additional command line arguments passed to robot.",
       "default": []
     },
+    "attachPython": {
+      "type": "boolean",
+      "default": false,
+      "description": "Also debug the Python code of keyword libraries: starts debugpy in the test run, which then waits for you to start the \"Debugpy\" attach configuration (see the README). Needs `pip install debugpy` in the project's environment."
+    },
+    "attachPythonPort": {
+      "type": "number",
+      "default": 5678,
+      "description": "Port debugpy listens on when `attachPython` is on; the Debugpy attach configuration must connect to the same port."
+    },
     "console": {
       "type": "string",
       "enum": [

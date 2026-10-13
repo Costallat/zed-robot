@@ -9,8 +9,14 @@ A [Zed](https://zed.dev) extension for [Robot Framework](https://robotframework.
   [Hubro/tree-sitter-robot](https://github.com/Hubro/tree-sitter-robot)):
   sections, settings, test cases, tasks, keywords, `FOR`/`WHILE`/`IF`/`TRY`/`RETURN`,
   the Robot Framework 7 `VAR`, `GROUP` and keyword `[Setup]` syntax, nested
-  variables (`${devices.${type}.ip}`), environment variables (`%{HOME}`) and
-  inline Python `${{ ... }}` (highlighted as Python).
+  variables (`${devices.${type}.ip}`), item access (`${list}[0]`), environment
+  variables (`%{HOME}`), `Given`/`When`/`Then` prefixes, translated section
+  headers and settings (`Language: pt-BR` and the other languages Robot
+  Framework supports) and inline Python `${{ ... }}` (highlighted as Python).
+- **Semantic highlighting** from RobotCode (optional): Robot Framework's
+  built-in keywords stand out from library and your own keywords, library
+  prefixes (`OS.Create File`), embedded and named arguments are colored (see
+  [Editor features to turn on](#editor-features-to-turn-on)).
 - **Language server**: [RobotCode](https://robotcode.io): completion, hover
   docs, go to definition, find references, rename, signature help, inlay hints,
   and diagnostics from Robot Framework's own analysis.
@@ -18,7 +24,8 @@ A [Zed](https://zed.dev) extension for [Robot Framework](https://robotframework.
 - **Formatting**: Robocop's formatter (formerly *Robotidy*) through RobotCode,
   so *Format Document* and format-on-save work.
 - **Debugging**: breakpoints, stepping through keywords and inspecting variables
-  in Zed's debugger, through RobotCode's debug adapter.
+  in Zed's debugger, through RobotCode's debug adapter, and down into the
+  Python code of your keyword libraries (see [Debugging Python keywords](#debugging-python-keywords)).
 - **Run buttons and tasks**: run or debug a single test, a whole suite, a
   folder or everything (see [Running and debugging tests](#running-and-debugging-tests)).
 - **Snippets** for sections, tests, keywords and control structures (see [Snippets](#snippets)).
@@ -105,7 +112,13 @@ ps -eo args | grep -i "language-server" | grep -v grep
         // on it and all its keywords (default: 30; RobotCode's own is 10)
         "library_load_timeout": 30,
         // Turn on RobotCode's log (TRACE, DEBUG, INFO, WARNING, ERROR)
-        "log_level": "INFO"
+        "log_level": "INFO",
+        // Which files get problems reported: "open_files" (default),
+        // "workspace" (every Robot file in the project) or "off"
+        "diagnostic_mode": "workspace",
+        // Debug the Python code of keyword libraries in every Robot debug
+        // session (see "Debugging Python keywords")
+        "debug_python": false
       }
     }
   }
@@ -212,6 +225,47 @@ Project-level settings (paths, variables, environment) are better kept in
 [`robot.toml`](#project-configuration-robottoml), so they also apply on the
 command line and for the rest of your team.
 
+### Editor features to turn on
+
+These come from RobotCode but are off in Zed by default. Add what you want to
+your settings (or `.zed/settings.json` for one project):
+
+```jsonc
+{
+  "languages": {
+    "Robot Framework": {
+      // Highlighting from RobotCode on top of the normal highlighting:
+      // built-in keywords, library prefixes, embedded/named arguments
+      "semantic_tokens": "combined",
+      // Folding and outline from RobotCode instead of the grammar
+      "document_folding_ranges": "on",
+      "document_symbols": "on",
+      // Argument names before values, e.g. `level=` in `Log    hi    INFO`
+      "inlay_hints": { "enabled": true }
+    }
+  },
+  // "N references" above keywords and tests (an editor-wide setting; also
+  // needs referencesCodeLens below)
+  "code_lens": "on",
+  "lsp": {
+    "robotcode": {
+      "settings": {
+        // Report problems in all Robot files, not just open ones
+        "diagnostic_mode": "workspace",
+        "robotcode": {
+          "analysis": { "referencesCodeLens": true },
+          // Which inlay hints RobotCode sends
+          "inlayHints": { "parameterNames": true, "namespaces": true }
+        }
+      }
+    }
+  }
+}
+```
+
+Run *editor: restart language server* after changing them. With
+`"semantic_tokens": "full"` only RobotCode's highlighting is used.
+
 ### Linting and formatting rules
 
 Robocop is configured in the project, through `pyproject.toml` or `robocop.toml`
@@ -285,6 +339,43 @@ To use your own `tasks.json`, give its Robot tasks the tags `robot-test` (the
 test name is in `$ZED_CUSTOM_robot_test_name`) or `robot-suite`. Tasks whose
 command is `robot`, `robotcode robot` or `python -m robot` can be debugged too.
 
+**Test results.** `robot: open log.html` and `robot: open report.html` open
+the last run's results in your browser (from the project root, where the tasks
+above write them unless `robot.toml` sets `output-dir`). In a dev container or
+remote project there is no browser to open; run `robot: serve results on port
+8000` instead and open <http://localhost:8000/log.html> with port 8000
+forwarded to your machine.
+
+### Debugging Python keywords
+
+To also stop at breakpoints in the Python code of your keyword libraries:
+
+1. Install debugpy in the project's environment: `pip install debugpy`.
+2. Turn on Python debugging, either for every Robot debug session with the
+   `debug_python` setting (`lsp.robotcode.settings.debug_python: true`), or
+   for one configuration with `"attachPython": true` in `.zed/debug.json`.
+3. Add this configuration to `.zed/debug.json` once:
+
+   ```jsonc
+   {
+     "label": "Attach to Robot's Python",
+     "adapter": "Debugpy",
+     "request": "attach",
+     "connect": { "host": "127.0.0.1", "port": 5678 },
+     "justMyCode": false
+   }
+   ```
+
+4. Start the Robot debug session as usual. It pauses before the first test
+   and waits (up to 2 minutes) for the Python debugger.
+5. Start *Attach to Robot's Python* (*debugger: start*). Breakpoints in `.py`
+   files now work, alongside the ones in `.robot` files.
+
+The two steps are needed because RobotCode announces its Python debugger in a
+way only VS Code reacts to. If port 5678 is busy, RobotCode picks another one
+and prints it in the debug console; set `"attachPythonPort"` in the Robot
+configuration and the same `port` in the attach configuration.
+
 ## Snippets
 
 Type the prefix and pick the snippet from the completion menu:
@@ -349,6 +440,10 @@ language server*. (Add `.robotcode_cache/` to `.gitignore`.)
   restart the language server, and open *dev: open language server logs* →
   RobotCode. The *RPC Messages* view in the same panel shows each request and
   response.
+- **"RobotCode needs Python 3.10 or newer" / "Robot Framework is not
+  installed for …"** in the status bar: the Python the extension found cannot
+  run RobotCode. Point `lsp.robotcode.settings.python` at the interpreter your
+  tests run with.
 - **No linting or formatting**: Robocop could not be installed (Zed's status
   bar shows "Robocop could not be installed" with the reason), or
   `install_robocop` is `false`. Installing `robotframework-robocop` in the
@@ -365,11 +460,14 @@ language server*. (Add `.robotcode_cache/` to `.gitignore`.)
 
 ## Known limitations
 
-- Item access written after the variable, `${list}[0]` or `${dict}[key]`, is
-  highlighted as the variable followed by plain text. The `${list[0]}` form is
-  fully supported.
-- `BREAK` and `CONTINUE` inside an inline `IF` are parsed as keyword calls
-  (they are still highlighted as keywords).
+- Translated `Given`/`When`/`Then` prefixes (e.g. Portuguese `Dado`/`Quando`/`Então`)
+  are not recognised by the grammar, because some (`E`, "and") would split
+  ordinary keyword names. RobotCode's semantic highlighting handles them when
+  the file declares its language.
+- Item access whose key contains a variable, `${data}[${index}]`, is
+  highlighted as one piece; the inner `${index}` is not colored separately.
+- Robot Framework 7 no longer accepts singular section headers
+  (`*** Test Case ***`), so neither does the grammar.
 
 ## Development
 
@@ -391,6 +489,9 @@ from GitHub at the commit pinned in `extension.toml`, so a change takes two comm
 
 1. Edit `tree-sitter-robot/grammar.js`, add a test to `tree-sitter-robot/test/corpus/`,
    then in `tree-sitter-robot/` run `tree-sitter generate` and `tree-sitter test`.
+   Translated headers and settings come from `tree-sitter-robot/translations.json`;
+   refresh it with `python scripts/generate-translations.py` (needs Robot
+   Framework) when a new Robot Framework release adds languages.
 2. Commit (including the regenerated `src/`) and push.
 3. Run `scripts/pin-grammar.sh`, commit `extension.toml` and push.
 
@@ -403,7 +504,8 @@ CI fails if `src/` is not regenerated or `extension.toml` points at an older gra
 - `src/robotcode.rs`: finds, downloads and launches RobotCode; installs Robocop
 - `src/debugger.rs`: debug adapter, `debug.json` handling, task-to-debug conversion
 - `tree-sitter-robot/`: the grammar
-- `languages/robot/`: language configuration, tree-sitter queries and tasks
+- `languages/robot/`: language configuration, tree-sitter queries, tasks and
+  semantic token rules (`semantic_token_rules.json`)
 - `snippets/`: snippets
 - `debug_adapter_schemas/RobotCode.json`: options accepted in `debug.json`
 - `tests/fixtures/`: sample files the queries are checked against

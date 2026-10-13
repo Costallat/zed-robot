@@ -55,5 +55,29 @@
     "command": "robotcode",
     "args": ["libdoc", "\"$ZED_SELECTED_TEXT\"", "list"],
     "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  // Results of the last run (robot writes log.html / report.html to the
+  // directory it runs in, the project root for the tasks above, unless
+  // robot.toml sets output-dir).
+  {
+    "label": "robot: open log.html",
+    "command": "python3",
+    "args": ["-m", "webbrowser", "-t", "\"file://$ZED_WORKTREE_ROOT/log.html\""],
+    "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    "label": "robot: open report.html",
+    "command": "python3",
+    "args": ["-m", "webbrowser", "-t", "\"file://$ZED_WORKTREE_ROOT/report.html\""],
+    "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    // For dev containers and remote projects, where no browser can be opened:
+    // serves the results on http://localhost:8000/log.html. Forward port 8000
+    // to your machine to open it there. Stop the task to stop the server.
+    "label": "robot: serve results on port 8000",
+    "command": "python3",
+    "args": ["-m", "http.server", "8000", "--bind", "127.0.0.1"],
+    "cwd": "$ZED_WORKTREE_ROOT"
   }
 ]

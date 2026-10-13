@@ -1,9 +1,9 @@
 id = "robot-framework"
 name = "Robot Framework"
-version = "0.3.2"
+version = "0.4.0"
 schema_version = 1
 authors = ["José Mendes <mendesfilho@pm.me>"]
-description = "🤖 Robot Framework support: syntax highlighting, RobotCode language server, Robocop linting and formatting, debugging, test tasks and snippets."
+description = "🤖 Robot Framework support: syntax and semantic highlighting, RobotCode language server, Robocop linting and formatting, Robot and Python debugging, test tasks and snippets."
 repository = "https://github.com/mendes-jose/zed-robot.git"
 snippets = "snippets/robot framework.json"
 
@@ -12,7 +12,7 @@ snippets = "snippets/robot framework.json"
 # the grammar.
 [grammars.robot]
 repository = "https://github.com/Costallat/zed-robot"
-rev = "54f4606987c0e1ae063ba50b036cc923e31164b6"
+rev = "b20aaf5b56c84967d3f49ca6f69f245be2ca12d0"
 path = "tree-sitter-robot"
 
 [language_servers.robotcode]
@@ -43,6 +43,13 @@ path = ["robotcodedev", "robotcode", "releases", "download", "**"]
 kind = "process:exec"
 command = "*"
 args = ["-m", "pip", "install", "**"]
+
+# Checks that the project's Python has Robot Framework and is recent enough
+# before starting the downloaded RobotCode with it.
+[[capabilities]]
+kind = "process:exec"
+command = "*"
+args = ["-m", "robot", "--version"]
 
 # Same as above for virtualenvs created by uv, which have no pip.
 [[capabilities]]

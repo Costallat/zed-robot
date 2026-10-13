@@ -46,6 +46,11 @@ pub struct Options {
     pub library_load_timeout: Option<u64>,
     /// RobotCode log level (TRACE, DEBUG, INFO, ...); logging is off when unset.
     pub log_level: Option<String>,
+    /// Which files RobotCode reports problems for (`robotcode.analysis.diagnosticMode`).
+    pub diagnostic_mode: Option<&'static str>,
+    /// Start debugpy in every Robot debug session, for stepping into Python
+    /// keyword code.
+    pub debug_python: bool,
 }
 
 impl Options {
@@ -65,6 +70,44 @@ impl Options {
                 .and_then(|v| v.as_str())
                 .map(|v| v.to_uppercase())
                 .filter(|v| !v.is_empty()),
+            debug_python: get("debug_python")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
+            diagnostic_mode: get("diagnostic_mode")
+                .and_then(|v| v.as_str())
+                .and_then(|mode| match mode {
+                    "workspace" => Some("workspace"),
+                    "open_files" | "openFilesOnly" => Some("openFilesOnly"),
+                    "off" => Some("off"),
+                    _ => None,
+                }),
+        }
+    }
+
+    /// Adds what these options set in RobotCode's own configuration to the
+    /// workspace configuration sent to it. Values the user set directly under
+    /// `robotcode` win.
+    pub fn apply_workspace_configuration(&self, config: &mut serde_json::Value) {
+        let Some(mode) = self.diagnostic_mode else {
+            return;
+        };
+        let Some(root) = config.as_object_mut() else {
+            return;
+        };
+        let analysis = root
+            .entry("robotcode")
+            .or_insert_with(|| serde_json::json!({}))
+            .as_object_mut()
+            .and_then(|robotcode| {
+                robotcode
+                    .entry("analysis")
+                    .or_insert_with(|| serde_json::json!({}))
+                    .as_object_mut()
+            });
+        if let Some(analysis) = analysis {
+            analysis
+                .entry("diagnosticMode")
+                .or_insert_with(|| mode.into());
         }
     }
 
@@ -175,6 +218,8 @@ impl RobotCode {
                 "No Python interpreter found for RobotCode. Create a virtualenv in the project \
                  (with Robot Framework installed) or set `lsp.robotcode.settings.python`.",
             )?;
+
+        check_python(&python, &env)?;
 
         let (version, launcher) =
             self.managed_robotcode(options.robotcode_version.as_deref(), status)?;
@@ -404,6 +449,60 @@ fn active_venv(dir: &str, os: zed::Os, which: impl Fn(&str) -> Option<String>) -
     Some(Venv { python, robotcode })
 }
 
+/// Oldest Python the current RobotCode releases run on.
+const MIN_PYTHON: (u32, u32) = (3, 10);
+
+/// Checks that `python` can run the downloaded RobotCode: Robot Framework is
+/// installed in it and it is recent enough. `python -m robot --version`
+/// answers both and fails fast, so problems are reported clearly instead of
+/// as a crash of the language server.
+fn check_python(python: &str, env: &[(String, String)]) -> Result<()> {
+    let output = zed::process::Command::new(python)
+        .args(["-m", "robot", "--version"])
+        .envs(env.iter().cloned())
+        .output()
+        .map_err(|err| format!("Could not run the Python interpreter `{python}`: {err}"))?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    python_check_result(python, &stdout, &stderr)
+}
+
+fn python_check_result(python: &str, stdout: &str, stderr: &str) -> Result<()> {
+    let hint = "Set `lsp.robotcode.settings.python` to the interpreter your tests run with, \
+                or create a virtualenv in the project.";
+    if !stdout.contains("Robot Framework") {
+        if stderr.contains("No module named robot") {
+            return Err(format!(
+                "Robot Framework is not installed for `{python}`. Install it there \
+                 (`{python} -m pip install robotframework`). {hint}"
+            ));
+        }
+        return Err(format!(
+            "Could not check Robot Framework with `{python}`: {}. {hint}",
+            stderr.trim()
+        ));
+    }
+    if let Some(version) = python_version(stdout) {
+        if version < MIN_PYTHON {
+            return Err(format!(
+                "RobotCode needs Python {}.{} or newer, but `{python}` is Python {}.{}. {hint}",
+                MIN_PYTHON.0, MIN_PYTHON.1, version.0, version.1
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Extracts the Python version from `robot --version` output, e.g.
+/// "Robot Framework 7.5 (Python 3.11.15 on linux)".
+fn python_version(robot_version: &str) -> Option<(u32, u32)> {
+    let rest = robot_version.split("(Python ").nth(1)?;
+    let mut parts = rest.split(|c: char| !c.is_ascii_digit());
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next()?.parse().ok()?;
+    Some((major, minor))
+}
+
 fn succeeded(result: &Result<zed::process::Output>) -> bool {
     matches!(result, Ok(output) if output.status == Some(0))
 }
@@ -549,6 +648,56 @@ mod tests {
         assert_eq!(venv.python, "C:\\venvs\\robot\\Scripts\\python.exe");
 
         assert!(active_venv("", zed::Os::Linux, which_in(None)).is_none());
+    }
+
+    #[test]
+    fn diagnostic_mode_goes_into_robotcode_configuration() {
+        let options =
+            Options::from_settings(Some(&serde_json::json!({ "diagnostic_mode": "workspace" })));
+        let mut config = serde_json::json!({ "robotcode": { "robocop": { "enabled": true } } });
+        options.apply_workspace_configuration(&mut config);
+        assert_eq!(
+            config["robotcode"]["analysis"]["diagnosticMode"],
+            "workspace"
+        );
+        assert_eq!(config["robotcode"]["robocop"]["enabled"], true);
+
+        // A value set directly in RobotCode's settings is kept.
+        let mut config =
+            serde_json::json!({ "robotcode": { "analysis": { "diagnosticMode": "off" } } });
+        options.apply_workspace_configuration(&mut config);
+        assert_eq!(config["robotcode"]["analysis"]["diagnosticMode"], "off");
+
+        // Unknown values are ignored.
+        let options =
+            Options::from_settings(Some(&serde_json::json!({ "diagnostic_mode": "all" })));
+        let mut config = serde_json::json!({});
+        options.apply_workspace_configuration(&mut config);
+        assert_eq!(config, serde_json::json!({}));
+    }
+
+    #[test]
+    fn python_check_messages() {
+        assert_eq!(
+            python_version("Robot Framework 7.5 (Python 3.11.15 on linux)\n"),
+            Some((3, 11))
+        );
+        assert_eq!(
+            python_version("Robot Framework 6.1 (PyPy 3.9.18 on linux)"),
+            None
+        );
+
+        let ok = "Robot Framework 7.5 (Python 3.14.0 on linux)";
+        assert!(python_check_result("py", ok, "").is_ok());
+
+        let old = "Robot Framework 6.1 (Python 3.8.10 on linux)";
+        let err = python_check_result("py", old, "").unwrap_err();
+        assert!(err.contains("needs Python 3.10"), "{err}");
+        assert!(err.contains("Python 3.8"), "{err}");
+
+        let err =
+            python_check_result("py", "", "/usr/bin/python3: No module named robot").unwrap_err();
+        assert!(err.contains("Robot Framework is not installed"), "{err}");
     }
 
     #[test]

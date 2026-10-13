@@ -35,7 +35,7 @@ launcher="$work/robotcode/extension/bundled/tool/robotcode"
 
 python3 -m venv "$work/project/.venv"
 python="$work/project/.venv/bin/python"
-"$python" -m pip install --quiet --disable-pip-version-check robotframework
+"$python" -m pip install --quiet --disable-pip-version-check robotframework debugpy
 
 robocop="$work/robocop"
 "$python" -m pip install --quiet --disable-pip-version-check --target "$robocop" robotframework-robocop

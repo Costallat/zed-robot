@@ -1,0 +1,56 @@
+// Maps RobotCode's semantic token types to theme styles. Used when semantic
+// tokens are turned on for Robot Framework files:
+//   "languages": { "Robot Framework": { "semantic_tokens": "combined" } }
+// Within this file the first matching rule wins, so rules with modifiers come
+// before the plain rule for the same token type. Each `style` lists theme
+// names to try in order.
+[
+  // Keyword calls: Robot Framework's own keywords (BuiltIn, Collections, ...)
+  // look different from library and user keywords.
+  { "token_type": "keywordCall", "token_modifiers": ["builtin"], "style": ["function.builtin", "function"] },
+  { "token_type": "keywordCall", "style": ["function.call", "function"] },
+  { "token_type": "keywordCallInner", "style": ["function.call", "function"] },
+  { "token_type": "nameCall", "style": ["function.call", "function"] },
+
+  // Definitions
+  { "token_type": "keywordName", "style": ["function.definition", "function"] },
+  { "token_type": "testcaseName", "style": ["function.definition", "function"] },
+
+  // Library.Keyword prefixes and library names in imports
+  { "token_type": "namespace", "style": ["namespace", "module", "type"] },
+
+  // Given / When / Then / And / But
+  { "token_type": "bddPrefix", "style": ["keyword"] },
+
+  // IF, FOR, TRY, RETURN, ... and VAR
+  { "token_type": "controlFlow", "style": ["keyword.control", "keyword"] },
+  { "token_type": "forSeparator", "style": ["keyword.control", "keyword"] },
+  { "token_type": "var", "style": ["keyword"] },
+
+  // Sections and settings
+  { "token_type": "header", "style": ["title"] },
+  { "token_type": "headerSettings", "style": ["title"] },
+  { "token_type": "headerVariable", "style": ["title"] },
+  { "token_type": "headerTestcase", "style": ["title"] },
+  { "token_type": "headerTask", "style": ["title"] },
+  { "token_type": "headerKeyword", "style": ["title"] },
+  { "token_type": "headerComment", "style": ["title", "comment"] },
+  { "token_type": "settingImport", "style": ["keyword"] },
+  { "token_type": "setting", "style": ["attribute", "keyword"] },
+  { "token_type": "config", "style": ["attribute", "keyword"] },
+  { "token_type": "documentation", "style": ["comment.doc", "comment"] },
+
+  // Variables and arguments
+  { "token_type": "variable", "style": ["variable"] },
+  { "token_type": "variableBegin", "style": ["punctuation.special", "variable"] },
+  { "token_type": "variableEnd", "style": ["punctuation.special", "variable"] },
+  { "token_type": "variableExpression", "style": ["embedded", "string.special"] },
+  { "token_type": "expressionBegin", "style": ["punctuation.special"] },
+  { "token_type": "expressionEnd", "style": ["punctuation.special"] },
+  // Arguments embedded in keyword names: `Login As ${user}` / `Login As admin`
+  { "token_type": "argument", "token_modifiers": ["embedded"], "style": ["variable.parameter", "variable"] },
+  { "token_type": "argument", "style": ["string"] },
+  { "token_type": "namedArgument", "style": ["variable.parameter", "property"] },
+  { "token_type": "escape", "style": ["string.escape"] },
+  { "token_type": "continuation", "style": ["punctuation.delimiter"] }
+]
