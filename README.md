@@ -520,6 +520,11 @@ CI fails if `src/` is not regenerated or `extension.toml` points at an older gra
 - `tests/integration/`: end-to-end check of RobotCode as the extension runs it
 - `scripts/`: checks used by CI and the grammar pinning script
 
+## Maintainers
+
+Maintained by Renato Foot. Originally created by José Mendes
+([mendes-jose/zed-robot](https://github.com/mendes-jose/zed-robot)).
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
