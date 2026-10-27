@@ -1,6 +1,6 @@
 id = "robot-framework"
 name = "Robot Framework"
-version = "0.5.0"
+version = "0.6.0"
 schema_version = 1
 authors = ["Renato Foot <renato@foot.com>", "José Mendes <mendesfilho@pm.me>"]
 description = "🤖 Robot Framework support: syntax and semantic highlighting, RobotCode language server, Robocop linting and formatting, Robot and Python debugging, test tasks and snippets."

@@ -5,6 +5,8 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
 
 ## Unreleased
 
+## 0.6.0 - 2026-10-27
+
 ### Added
 
 - The outline panel and breadcrumbs show each keyword's `[Arguments]` (also
