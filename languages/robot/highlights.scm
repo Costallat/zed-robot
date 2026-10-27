@@ -56,7 +56,7 @@
   "=" @operator)
   (#match? @property "^[A-Za-z_][A-Za-z0-9_]*$"))
 (return_value) @string
-(inline_python_expression [ "${{" "}}" ] @punctuation.special)
+(inline_python_expression [ "${{" "@{{" "&{{" "}}" ] @punctuation.special)
 
 (ellipses) @punctuation.delimiter
 

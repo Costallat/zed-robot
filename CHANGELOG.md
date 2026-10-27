@@ -5,6 +5,41 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
 
 ## Unreleased
 
+## 0.6.0 - 2026-10-27
+
+### Added
+
+- The outline panel and breadcrumbs show each keyword's `[Arguments]` (also
+  translated) and named `GROUP` blocks.
+- `@{{ ... }}` and `&{{ ... }}` are highlighted, and get Python highlighting,
+  like `${{ ... }}`.
+
+### Fixed
+
+- Item access followed by more of the name parses: `${tc[1].full_name}`,
+  `${SUITE.tests[0].name}`, and variables inside a subscript with other text,
+  `${tc[0, ${index}]}`.
+- Settings and variables with no value parse: `[Tags]` or `Documentation`
+  alone on a line, `@{EMPTY LIST}` in `*** Variables ***`.
+- Names with `&` (`Write & Read`) and test names with variables
+  (`Modifying ${TEST TAGS} works`).
+- Keywords whose name starts with `IF`, `FOR`, `TRY`, ... (`FOR in keyword`),
+  and keyword names starting with a variable (`${x} Framework`).
+- Inline Python: `${{()}}`, `${{[]}}`, `@{{[1, 2]}}`, `&{{{'a': 1}}}` and
+  `${{[1, 2]}}[0]`.
+- `RETURN` with several values, typed assignments (`@{x: list[int]} =`) and
+  item access in assignments (`${d}[key] =`).
+- Section headers with any number of asterisks (`*Settings*`).
+- Data-driven tests with more rows after the first line, empty tests and
+  keywords, inline `IF` continued on a `...` line, nested environment
+  variables (`%{%{NAME}_${suffix}}`), `[Metadata]` in tests, and templated
+  rows that start with a value (`${{[1, 2]}}    [1, 2]`, `{}`).
+- Finnish settings renamed in Robot Framework 7.5 (`Testin Tagit`) parse
+  under their old names too.
+- Files in Robot Framework's own `atest/` with parse errors: 74 of 1359
+  (was 353). Most of the rest are invalid on purpose (pipe-separated files,
+  unknown settings and sections).
+
 ## 0.5.0 - 2026-10-27
 
 ### Added

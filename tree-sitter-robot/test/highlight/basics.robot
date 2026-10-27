@@ -41,3 +41,8 @@ Greets The World
     Log    %{HOME}    @{ITEMS}
     #      ^ variable
     #                 ^ variable
+
+*** Keywords ***
+List Forms
+    Log Many    @{{[1, 2]}}
+#               ^^^ punctuation.special

@@ -153,3 +153,71 @@ Log Foo From Nested Dictionaries
                       (scalar_variable
                         (variable_name)
                         (variable_key)))))))))))))
+
+================================================================================
+Extended syntax after item access
+================================================================================
+
+*** Test Cases ***
+Attributes
+    Log    ${tc[1].full_name}
+    Log    ${SUITE.tests[0].name}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name)
+                    (variable_key)
+                    (variable_name))))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name)
+                    (variable_key)
+                    (variable_name)))))))))))
+
+================================================================================
+Variable inside a subscript with other text
+================================================================================
+
+*** Test Cases ***
+Index
+    Log    ${tc[0, ${index}]}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name)
+                    (variable_key)
+                    (scalar_variable
+                      (variable_name))))))))))))

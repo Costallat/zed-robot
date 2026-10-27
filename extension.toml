@@ -1,6 +1,6 @@
 id = "robot-framework"
 name = "Robot Framework"
-version = "0.5.0"
+version = "0.6.0"
 schema_version = 1
 authors = ["Renato Foot <renato@foot.com>", "José Mendes <mendesfilho@pm.me>"]
 description = "🤖 Robot Framework support: syntax and semantic highlighting, RobotCode language server, Robocop linting and formatting, Robot and Python debugging, test tasks and snippets."
@@ -12,7 +12,7 @@ snippets = "snippets/robot framework.json"
 # the grammar.
 [grammars.robot]
 repository = "https://github.com/Costallat/zed-robot"
-rev = "a0facdfc75ae3a6a31b821a13842959b32312721"
+rev = "02848671d617bcf210c9890866d044861bbad62a"
 path = "tree-sitter-robot"
 
 [language_servers.robotcode]

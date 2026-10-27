@@ -73,6 +73,15 @@ expect("outline.scm",
                 ("name", "common.resource"), ("name", "vars.py"), ("name", "${HOST}"),
                 ("name", "Login Works"), ("name", "Log In")],
        absent=[("name", "not an import"), ("name", "timeout=1")])
+# Keyword arguments and named GROUP blocks, as items under their keyword / test.
+expect("outline.scm",
+       "*** Keywords ***\nLog In\n    [Documentation]    Logs in\n"
+       "    [Arguments]    ${user}    ${password}=secret\n    ...    @{rest}\n    No Operation\n\n"
+       "Inline    [Arguments]    ${a}\n    No Operation\n\n"
+       "*** Test Cases ***\nT\n    GROUP    Setup phase\n        No Operation\n    END\n",
+       present=[("context", "Arguments"), ("name", "${user}"), ("name", "${password}=secret"),
+                ("name", "@{rest}"), ("name", "${a}"), ("context", "GROUP"), ("name", "Setup phase")],
+       absent=[("name", "Logs in")])
 expect("outline.scm",
        "Language: Brazilian Portuguese\n\n*** Configurações ***\nBiblioteca    Collections\n",
        present=[("context", "Biblioteca"), ("name", "Collections")])

@@ -244,3 +244,72 @@ Library           MyLibrary    config={"debug": true, "timeout": 30}
           (argument
             (argument_name)
             (text_chunk)))))))
+
+================================================================================
+Settings with no value
+================================================================================
+
+*** Settings ***
+Documentation
+
+*** Variables ***
+@{EMPTY LIST}
+
+*** Test Cases ***
+No Tags
+    [Tags]
+    [Documentation]
+    ...    Continued
+    No Operation
+
+*** Keywords ***
+No Tags
+    [Tags]
+    No Operation
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (settings_section
+      (section_header)
+      (setting_statement
+        name: (setting_name))))
+  (section
+    (variables_section
+      (section_header)
+      (variable_definition
+        (list_variable
+          (variable_name)))))
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (test_case_setting
+            name: (test_case_setting_name))
+          (test_case_setting
+            name: (test_case_setting_name)
+            (arguments
+              (continuation
+                (ellipses)
+                (argument
+                  (text_chunk)))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))))))))
+  (section
+    (keywords_section
+      (section_header)
+      (keyword_definition
+        (name
+          (name_chunk))
+        (body
+          (keyword_setting
+            name: (keyword_setting_name))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))
