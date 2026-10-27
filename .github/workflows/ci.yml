@@ -140,7 +140,9 @@ jobs:
           if [ -d .venv/Scripts ]; then bin=.venv/Scripts; else bin=.venv/bin; fi
           "$bin/python" -m pip install --quiet --disable-pip-version-check robotframework "robotcode[runner]"
           # Activate it for the next step, as direnv or a shell profile would.
-          echo "$PWD/$bin" >> "$GITHUB_PATH"
+          # `pwd -W` gives Git Bash's path in Windows form (C:\...), which
+          # PowerShell and Windows need; macOS has no -W.
+          (cd "$bin" && { pwd -W 2> /dev/null || pwd; }) >> "$GITHUB_PATH"
 
       - name: Run the tasks as Zed does
         shell: bash
