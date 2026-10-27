@@ -575,7 +575,9 @@ lands. To release:
    `git tag v<version> && git push origin v<version>`. The tag starts the
    *Release* workflow (`.github/workflows/release.yml`), which checks the tag
    against the versions and publishes a GitHub release with the version's
-   changelog section as its notes.
+   changelog section as its notes. Instead of pushing a tag, you can run the
+   workflow by hand on `main` (*Actions* → *Release* → *Run workflow*): it
+   creates the tag itself.
 5. Publish it in Zed's extension registry with a pull request to
    [zed-industries/extensions](https://github.com/zed-industries/extensions):
    point the `extensions/robot-framework` submodule at the tagged commit and
