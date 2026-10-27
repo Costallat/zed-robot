@@ -5,6 +5,8 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
 
 ## Unreleased
 
+## 0.5.0 - 2026-10-27
+
 ### Added
 
 - Escape sequences (`\n`, `\${not_a_variable}`, `\#`, `\x41`, ...) are
