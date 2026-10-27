@@ -33,6 +33,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Versions match and are in the changelog
+        run: ./scripts/check-version.sh
+
       - name: Check formatting
         run: cargo fmt --check
 

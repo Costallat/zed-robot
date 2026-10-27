@@ -36,6 +36,10 @@ pub fn completion(completion: &Completion) -> Option<CodeLabel> {
         CompletionKind::Variable if is_variable(label) => {
             Some(in_code(&format!("{IN_TEST}Log    "), label, "\n"))
         }
+        // Named arguments, colored like `timeout=10s` in the code.
+        CompletionKind::Variable if label.ends_with('=') => {
+            Some(in_code(&format!("{IN_TEST}Log    "), label, "x\n"))
+        }
         CompletionKind::Variable => Some(literal(label, "variable")),
         // Section headers.
         CompletionKind::Class if label.starts_with('*') => Some(in_code("", label, "\n")),
@@ -146,7 +150,11 @@ mod tests {
         assert!(label.code.ends_with("Log    ${user}\n"));
 
         let label = completion(&item("timeout=", CompletionKind::Variable, None)).unwrap();
-        assert!(matches!(&label.spans[0], CodeLabelSpan::Literal(l) if l.text == "timeout="));
+        assert_eq!(shown(&label), "timeout=");
+        assert!(label.code.ends_with("Log    timeout=x\n"));
+
+        let label = completion(&item("HOME", CompletionKind::Variable, None)).unwrap();
+        assert!(matches!(&label.spans[0], CodeLabelSpan::Literal(l) if l.text == "HOME"));
     }
 
     #[test]

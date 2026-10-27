@@ -295,6 +295,65 @@ mod tests {
         assert_eq!(robot_arguments("robotcode", &strings(&["analyze"])), None);
     }
 
+    /// The shipped tasks.json, with comments removed and Zed's task variables
+    /// filled in as for a run button next to `test`.
+    fn shipped_task(label_prefix: &str, test: &str) -> TaskTemplate {
+        let text: String = include_str!("../languages/robot/tasks.json")
+            .lines()
+            .filter(|line| !line.trim_start().starts_with("//"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let tasks: Vec<serde_json::Value> = serde_json::from_str(&text).unwrap();
+        let task = tasks
+            .iter()
+            .find(|t| t["label"].as_str().unwrap().starts_with(label_prefix))
+            .unwrap();
+        let fill = |v: &serde_json::Value| {
+            v.as_str()
+                .unwrap()
+                .replace("$ZED_CUSTOM_robot_test_name", test)
+                .replace("$ZED_FILE", "/p/my.suite.robot")
+                .replace("$ZED_WORKTREE_ROOT", "/p")
+        };
+        TaskTemplate {
+            label: fill(&task["label"]),
+            command: fill(&task["command"]),
+            args: task["args"].as_array().unwrap().iter().map(fill).collect(),
+            env: Vec::new(),
+            cwd: task.get("cwd").map(fill),
+        }
+    }
+
+    #[test]
+    fn run_button_tasks_can_be_debugged() {
+        let task = shipped_task("robot: test", "Login [smoke] works");
+        let scenario = locator_scenario(task, "Debug login".into(), ADAPTER_NAME.into()).unwrap();
+        let config: serde_json::Value = serde_json::from_str(&scenario.config).unwrap();
+        assert_eq!(config["request"], "launch");
+        assert_eq!(config["cwd"], "/p");
+        assert_eq!(
+            config["args"],
+            serde_json::json!([
+                "--name",
+                "Robot",
+                "--test",
+                "Robot.Login [[]smoke] works",
+                "/p/my.suite.robot"
+            ])
+        );
+
+        let suite = shipped_task("robot: suite", "");
+        let scenario = locator_scenario(suite, "Suite".into(), ADAPTER_NAME.into()).unwrap();
+        let config: serde_json::Value = serde_json::from_str(&scenario.config).unwrap();
+        assert_eq!(config["args"], serde_json::json!(["/p/my.suite.robot"]));
+
+        // Tasks that do not run Robot Framework, and other adapters, are left alone.
+        let log = shipped_task("robot: open log.html", "");
+        assert!(locator_scenario(log, "Log".into(), ADAPTER_NAME.into()).is_none());
+        let test = shipped_task("robot: test", "x");
+        assert!(locator_scenario(test, "x".into(), "Debugpy".into()).is_none());
+    }
+
     #[test]
     fn exact_test_names_become_escaped_test_patterns() {
         let args = strings(&[

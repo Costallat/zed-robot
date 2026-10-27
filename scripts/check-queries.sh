@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Checks the grammar in tree-sitter-robot/ and every query in languages/robot:
 #   - the committed parser (src/) is up to date with grammar.js,
-#   - the grammar's own corpus tests pass,
+#   - the grammar's corpus tests and highlight tests (test/highlight) pass,
 #   - every query compiles against the grammar,
-#   - the sample files in tests/fixtures parse without errors.
-# Needs `tree-sitter` (tree-sitter-cli), node and a C compiler.
+#   - the sample files in tests/fixtures parse without errors,
+#   - the other queries capture what they should (tests/queries/check_captures.py),
+#   - every snippet expands to code that parses (tests/queries/check_snippets.py).
+# Needs `tree-sitter` (tree-sitter-cli), node, python3 and a C compiler.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -34,9 +36,9 @@ if ! git -C "$root" diff --quiet -- tree-sitter-robot/src; then
   status=1
 fi
 
-check "grammar corpus tests" tree-sitter test
+check "grammar corpus and highlight tests" tree-sitter test
 
-fixtures=("$root"/tests/fixtures/*.robot)
+fixtures=("$root"/tests/fixtures/*.robot "$root"/tests/fixtures/*.resource)
 for query in "$root"/languages/robot/*.scm; do
   check "query $(basename "$query")" tree-sitter query "$query" "${fixtures[@]}"
 done
@@ -48,5 +50,15 @@ else
   tree-sitter parse --quiet "${fixtures[@]}" 2> /dev/null || true
   status=1
 fi
+
+for script in check_captures check_snippets; do
+  if ! python3 "$root/tests/queries/$script.py" > "$log" 2>&1; then
+    grep -v "^ok" "$log" || true
+    echo "FAIL  tests/queries/$script.py"
+    status=1
+  else
+    echo "ok    tests/queries/$script.py ($(grep -c "^ok" "$log") checks)"
+  fi
+done
 
 exit $status

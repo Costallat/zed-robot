@@ -42,3 +42,4 @@ robocop="$work/robocop"
 rm -rf "$robocop/robot" "$robocop"/robotframework-* "$robocop/bin"
 
 PYTHONPATH="$robocop" "$python" "$root/tests/integration/smoke.py" "$python" "$launcher" "$work/project"
+python3 "$root/tests/integration/tasks.py" "$python" "$launcher" "$work"
