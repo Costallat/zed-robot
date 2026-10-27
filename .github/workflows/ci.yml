@@ -67,6 +67,12 @@ jobs:
       - name: Check grammar and queries
         run: ./scripts/check-queries.sh
 
+      # Random edits to the corpus: re-parsing after an edit (what Zed does on
+      # every keystroke) must give the same tree as parsing from scratch.
+      - name: Fuzz incremental parsing
+        working-directory: tree-sitter-robot
+        run: tree-sitter fuzz --iterations 10
+
       - name: Check extension.toml points at the current grammar
         run: ./scripts/pin-grammar.sh --check
 
@@ -92,7 +98,102 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Language server, linting, formatting and debugger
+      # To check that files formatted by Robocop still parse.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install tree-sitter CLI
+        run: npm install --global tree-sitter-cli@0.27.0
+
+      - name: Language server, linting, formatting, debugger and tasks
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: ./scripts/integration-test.sh
+
+  tasks:
+    # The shipped tasks (run button, open log.html) where they run through
+    # other shells than on Linux: zsh/sh on macOS, PowerShell on Windows.
+    name: Tasks on ${{ matrix.os }} (${{ matrix.shell }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            shell: sh
+          - os: windows-latest
+            shell: pwsh
+          - os: windows-latest
+            shell: powershell
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Project virtualenv with Robot Framework and RobotCode
+        shell: bash
+        run: |
+          python -m venv .venv
+          if [ -d .venv/Scripts ]; then bin=.venv/Scripts; else bin=.venv/bin; fi
+          "$bin/python" -m pip install --quiet --disable-pip-version-check robotframework "robotcode[runner]"
+          # Activate it for the next step, as direnv or a shell profile would.
+          echo "$PWD/$bin" >> "$GITHUB_PATH"
+
+      - name: Run the tasks as Zed does
+        shell: bash
+        env:
+          TASK_SHELL: ${{ matrix.shell }}
+        run: python tests/integration/tasks.py "$(python -c 'import sys; print(sys.executable)')" - "$RUNNER_TEMP"
+
+  real-world:
+    name: Parse Robot Framework's own test suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install tree-sitter CLI
+        run: npm install --global tree-sitter-cli@0.27.0
+
+      - name: Parse atest/ of robotframework/robotframework
+        run: ./scripts/check-real-world.sh
+
+  translations:
+    # A new Robot Framework release can add languages or translations; this
+    # fails on the weekly run and only warns on pushes and pull requests.
+    name: Translations are current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate from the latest Robot Framework
+        run: |
+          python -m pip install --quiet --disable-pip-version-check robotframework
+          python scripts/generate-translations.py
+
+      - name: Compare with the committed files
+        env:
+          STRICT: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          # The "_comment" line only names the Robot Framework version.
+          if git diff --quiet -I '"_comment":' -- tree-sitter-robot/translations.json languages/robot/outline.scm; then
+            echo "ok    translations match the latest Robot Framework"
+            exit 0
+          fi
+          git diff --stat -- tree-sitter-robot/translations.json languages/robot/outline.scm
+          message="Robot Framework has new translations: run scripts/generate-translations.py, then tree-sitter generate in tree-sitter-robot/, and commit"
+          if [ "$STRICT" = "true" ]; then
+            echo "::error::$message"
+            exit 1
+          fi
+          echo "::warning::$message"

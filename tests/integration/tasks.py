@@ -8,7 +8,15 @@ the shell, with Zed's task variables filled in) and checks:
     tasks.py PYTHON ROBOTCODE_LAUNCHER WORKDIR
 
 `robotcode` on the PATH runs ROBOTCODE_LAUNCHER with PYTHON, like a project
-with RobotCode installed. Exits non-zero if a check fails.
+with RobotCode installed. With `-` as ROBOTCODE_LAUNCHER, the `robotcode` and
+`python` already on the PATH are used (an activated virtualenv with
+`pip install robotframework "robotcode[runner]"`), which also works on
+Windows.
+
+Tasks run through `sh -c` (Zed on Linux and macOS runs them in the user's
+shell), or on Windows through PowerShell: TASK_SHELL=powershell (Windows
+PowerShell 5.1) or pwsh (PowerShell 7, the default). Exits non-zero if a
+check fails.
 """
 
 import json
@@ -44,19 +52,28 @@ def run(task, variables, env):
         return text
 
     command = " ".join([task["command"], *(fill(arg) for arg in task["args"])])
-    return subprocess.run(["sh", "-c", command], cwd=fill(task["cwd"]), env=env,
-                          capture_output=True, text=True, timeout=120)
+    if os.name == "nt":
+        shell = [os.environ.get("TASK_SHELL", "pwsh"), "-NoProfile", "-NonInteractive", "-Command", command]
+    else:
+        shell = ["sh", "-c", command]
+    return subprocess.run(shell, cwd=fill(task["cwd"]), env=env,
+                          capture_output=True, text=True, timeout=180)
 
 
 project = Path(WORKDIR) / "tasks-project"
 shutil.rmtree(project, ignore_errors=True)
 (project / "bin").mkdir(parents=True)
 
-# `robotcode` and `python`, as an activated virtualenv provides them.
-robotcode = project / "bin" / "robotcode"
-robotcode.write_text(f'#!/bin/sh\nexec "{PYTHON}" "{LAUNCHER}" "$@"\n')
-robotcode.chmod(0o755)
-os.symlink(PYTHON, project / "bin" / "python")
+if LAUNCHER != "-":
+    # `robotcode` and `python`, as an activated virtualenv provides them.
+    robotcode = project / "bin" / "robotcode"
+    robotcode.write_text(f'#!/bin/sh\nexec "{PYTHON}" "{LAUNCHER}" "$@"\n')
+    robotcode.chmod(0o755)
+    os.symlink(PYTHON, project / "bin" / "python")
+
+# Stands in for the browser: prints the URL it is asked to open.
+printer = project / "bin" / "print_url.py"
+printer.write_text("import sys\nprint('BROWSER', sys.argv[1])\n")
 
 (project / "robot.toml").write_text('output-dir = "results"\n')
 suite = project / "my.suite.robot"
@@ -72,7 +89,8 @@ env = dict(os.environ)
 env["PATH"] = f"{project / 'bin'}{os.pathsep}{env['PATH']}"
 # Keep a user-level robot.toml out of the way, and print instead of opening a browser.
 env["HOME"] = env["XDG_CONFIG_HOME"] = str(project / "home")
-env["BROWSER"] = "echo"
+# Forward slashes: webbrowser splits BROWSER like a POSIX shell, also on Windows.
+env["BROWSER"] = f"{Path(PYTHON).as_posix()} {printer.as_posix()} %s"
 
 tasks = load_tasks()
 variables = {"ZED_FILE": str(suite), "ZED_WORKTREE_ROOT": str(project)}
@@ -86,7 +104,7 @@ for name in ["Login [smoke] works", "Login * other", "Name.with.dots"]:
 
 result = run(tasks["robot: open log.html"], variables, env)
 expected = (project / "results" / "log.html").as_uri()
-check("`robot: open log.html` opens the log in output-dir", expected in result.stdout,
+check("`robot: open log.html` opens the log in output-dir", f"BROWSER {expected}" in result.stdout,
       result.stdout + result.stderr)
 
 sys.exit(1 if failures else 0)

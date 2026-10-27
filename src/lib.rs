@@ -33,11 +33,9 @@ impl zed::Extension for RobotFrameworkExtension {
             .and_then(|s| s.binary)
             .and_then(|b| b.arguments);
 
-        let mut args = launch.prefix_args;
-        args.extend(user_args.unwrap_or_else(|| SERVER_ARGS.map(String::from).to_vec()));
         Ok(zed::Command {
             command: launch.command,
-            args,
+            args: server_args(launch.prefix_args, user_args),
             env: launch.env,
         })
     }
@@ -73,12 +71,10 @@ impl zed::Extension for RobotFrameworkExtension {
         _id: &LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<Option<serde_json::Value>> {
-        let mut settings = LspSettings::for_worktree(SERVER_ID, worktree)
+        let settings = LspSettings::for_worktree(SERVER_ID, worktree)
             .ok()
-            .and_then(|s| s.settings)
-            .unwrap_or_else(|| serde_json::json!({ "robotcode": {} }));
-        Options::from_settings(Some(&settings)).apply_workspace_configuration(&mut settings);
-        Ok(Some(add_dotted_sections(&settings)))
+            .and_then(|s| s.settings);
+        Ok(Some(workspace_configuration(settings)))
     }
 
     fn get_dap_binary(
@@ -134,6 +130,24 @@ impl zed::Extension for RobotFrameworkExtension {
     }
 }
 
+/// The language server's arguments: the launcher's own (the downloaded
+/// RobotCode's script), then the user's `lsp.robotcode.binary.arguments` or
+/// `language-server --stdio`.
+fn server_args(prefix_args: Vec<String>, user_args: Option<Vec<String>>) -> Vec<String> {
+    let mut args = prefix_args;
+    args.extend(user_args.unwrap_or_else(|| SERVER_ARGS.map(String::from).to_vec()));
+    args
+}
+
+/// What RobotCode gets for `workspace/configuration`: the user's
+/// `lsp.robotcode.settings`, with the extension's own options (such as
+/// `diagnostic_mode`) turned into RobotCode settings.
+fn workspace_configuration(settings: Option<serde_json::Value>) -> serde_json::Value {
+    let mut settings = settings.unwrap_or_else(|| serde_json::json!({ "robotcode": {} }));
+    Options::from_settings(Some(&settings)).apply_workspace_configuration(&mut settings);
+    add_dotted_sections(&settings)
+}
+
 /// RobotCode asks for dotted sections such as `robotcode.robocop`. Expose every
 /// nested object under its dotted path as well, so the lookup works whether the
 /// client resolves sections by path or by exact key.
@@ -171,6 +185,48 @@ zed::register_extension!(RobotFrameworkExtension);
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn server_arguments() {
+        let launcher = vec!["/ext/robotcode-v2/launcher".to_string()];
+        assert_eq!(
+            server_args(launcher.clone(), None),
+            ["/ext/robotcode-v2/launcher", "language-server", "--stdio"]
+        );
+        // The user's arguments replace the defaults, after the launcher.
+        assert_eq!(
+            server_args(
+                launcher,
+                Some(vec!["language-server".into(), "--tcp".into()])
+            ),
+            ["/ext/robotcode-v2/launcher", "language-server", "--tcp"]
+        );
+        assert_eq!(
+            server_args(Vec::new(), None),
+            ["language-server", "--stdio"]
+        );
+    }
+
+    #[test]
+    fn workspace_configuration_for_robotcode() {
+        // Nothing configured: RobotCode still finds its section.
+        let config = workspace_configuration(None);
+        assert!(config["robotcode"].is_object());
+
+        // The user's RobotCode settings pass through, also under dotted names,
+        // next to the extension's own options turned into RobotCode's.
+        let config = workspace_configuration(Some(serde_json::json!({
+            "diagnostic_mode": "workspace",
+            "robotcode": { "robocop": { "enabled": false } }
+        })));
+        assert_eq!(config["robotcode"]["robocop"]["enabled"], false);
+        assert_eq!(config["robotcode.robocop"]["enabled"], false);
+        assert_eq!(
+            config["robotcode"]["analysis"]["diagnosticMode"],
+            "workspace"
+        );
+        assert_eq!(config["robotcode.analysis"]["diagnosticMode"], "workspace");
+    }
 
     #[test]
     fn dotted_sections_mirror_nested_objects() {

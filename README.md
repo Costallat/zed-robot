@@ -526,14 +526,19 @@ request, plus weekly to catch new RobotCode or Robocop releases.
 
 | What | Where | Run by |
 | --- | --- | --- |
-| Rust: settings, virtualenv detection, debug configurations, task-to-debugger conversion of the shipped `tasks.json`, completion/symbol labels | `src/*.rs` (`#[cfg(test)]`) | `cargo test` |
+| Rust: settings, server arguments, workspace configuration, virtualenv detection, choosing the newest downloaded RobotCode, debug configurations, task-to-debugger conversion of the shipped `tasks.json`, completion/symbol labels | `src/*.rs` (`#[cfg(test)]`) | `cargo test` |
 | Grammar: parse trees for each construct | `tree-sitter-robot/test/corpus/` | `check-queries.sh` |
 | Highlighting: the color of each construct, as `# ^ capture` assertions under the line | `tree-sitter-robot/test/highlight/` | `check-queries.sh` |
 | Outline, injections, run buttons, auto-close scopes, folds, indents, text objects, label code | `tests/queries/check_captures.py` | `check-queries.sh` |
 | Snippets expand to code that parses | `tests/queries/check_snippets.py` | `check-queries.sh` |
+| Every highlight name (queries, labels, semantic token rules) is one Zed themes style | `tests/queries/check_theme_names.py` | `check-queries.sh` |
+| Incremental parsing after random edits matches a fresh parse | `tree-sitter fuzz` | CI |
+| Robot Framework's own test suites parse no worse than before | `scripts/check-real-world.sh`, `tests/real-world-baseline.txt` | CI |
+| `translations.json` and the outline's import names match the latest Robot Framework | `scripts/generate-translations.py` | CI (fails weekly, warns on pull requests) |
 | Sample files parse without errors and every query compiles | `tests/fixtures/` | `check-queries.sh` |
-| RobotCode as the extension runs it: diagnostics, formatting, hover, semantic tokens, Robot and Python breakpoints | `tests/integration/smoke.py` | `integration-test.sh` |
-| The shipped tasks: run button runs exactly one test, results open from `output-dir` | `tests/integration/tasks.py` | `integration-test.sh` |
+| RobotCode as the extension runs it: diagnostics, formatting, hover, completion items as `labels.rs` reads them, semantic tokens, Robot and Python breakpoints, debugging one test from the run button | `tests/integration/smoke.py` | `integration-test.sh` |
+| Sample files formatted by Robocop still parse | `integration-test.sh` | `integration-test.sh` |
+| The shipped tasks: run button runs exactly one test, results open from `output-dir` | `tests/integration/tasks.py` | `integration-test.sh`; CI also on macOS and on Windows (PowerShell 5.1 and 7) |
 
 When adding grammar syntax, add a corpus test and a highlight test; for a new
 query capture, a case in `check_captures.py`; for a new snippet, its context in

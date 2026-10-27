@@ -27,6 +27,8 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
 - A `$`, `@`, `&` or `%` at the end of an argument (`prompt=$`) no longer
   swallows the line break and the line after it.
 - `${{ ... }}` with parentheses inside was injected as Python more than once.
+- Offline, the newest downloaded RobotCode is picked by version number
+  (`v2.10.0` after `v2.9.0`), not alphabetically.
 - Quotes typed inside an argument or a comment (`don't`) are no longer
   auto-closed.
 - The run button next to a test runs exactly that test, also when its name
@@ -41,6 +43,12 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
   run end to end (`tests/integration/tasks.py`), more fixtures (`.resource`,
   `*** Tasks ***`, `*** Comments ***`, translated files) and a Rust test of
   debugging the run button's task.
+- Completion items checked against the format `labels.rs` reads; debugging
+  one test from the run button end to end; Robocop-formatted samples must
+  still parse; highlight names must exist in Zed's themes; incremental parsing
+  fuzzed; Robot Framework's own test suites parsed against a baseline;
+  translations checked against the latest Robot Framework; the tasks run on
+  macOS and Windows (PowerShell 5.1 and 7) in CI.
 
 ### Documentation
 

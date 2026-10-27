@@ -5,7 +5,8 @@
 #   - every query compiles against the grammar,
 #   - the sample files in tests/fixtures parse without errors,
 #   - the other queries capture what they should (tests/queries/check_captures.py),
-#   - every snippet expands to code that parses (tests/queries/check_snippets.py).
+#   - every snippet expands to code that parses (tests/queries/check_snippets.py),
+#   - every highlight name is one Zed themes style (tests/queries/check_theme_names.py).
 # Needs `tree-sitter` (tree-sitter-cli), node, python3 and a C compiler.
 set -euo pipefail
 
@@ -51,7 +52,7 @@ else
   status=1
 fi
 
-for script in check_captures check_snippets; do
+for script in check_captures check_snippets check_theme_names; do
   if ! python3 "$root/tests/queries/$script.py" > "$log" 2>&1; then
     grep -v "^ok" "$log" || true
     echo "FAIL  tests/queries/$script.py"
