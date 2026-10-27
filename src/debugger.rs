@@ -195,7 +195,8 @@ fn robot_arguments(command: &str, args: &[String]) -> Option<Vec<String>> {
         "robotcode" => {
             // Skip robotcode's own options (e.g. `-p profile`) up to the subcommand.
             let index = args.iter().position(|a| a == "robot" || a == "run")?;
-            &args[index + 1..]
+            let rest = &args[index + 1..];
+            return Some(longname_to_test(unquoted(rest)));
         }
         p if p.starts_with("python") => match args {
             [flag, module, rest @ ..] if flag == "-m" && module == "robot" => rest,
@@ -203,8 +204,48 @@ fn robot_arguments(command: &str, args: &[String]) -> Option<Vec<String>> {
         },
         _ => return None,
     };
-    // Tasks quote arguments for the shell; the debugger passes them directly.
-    Some(rest.iter().map(|a| unquote(a).to_string()).collect())
+    Some(unquoted(rest))
+}
+
+/// Tasks quote arguments for the shell; the debugger passes them directly.
+fn unquoted(args: &[String]) -> Vec<String> {
+    args.iter().map(|a| unquote(a).to_string()).collect()
+}
+
+/// `--by-longname` is an option of `robotcode robot`, which the debugger does
+/// not run: it passes the arguments to Robot Framework itself. Turn it into
+/// Robot Framework's `--test`, escaping the pattern characters so the name
+/// still matches exactly.
+fn longname_to_test(args: Vec<String>) -> Vec<String> {
+    let mut out = Vec::with_capacity(args.len());
+    let mut args = args.into_iter();
+    while let Some(arg) = args.next() {
+        if arg == "--by-longname" || arg == "-bl" {
+            if let Some(name) = args.next() {
+                out.push("--test".to_string());
+                out.push(escape_test_pattern(&name));
+            }
+        } else {
+            out.push(arg);
+        }
+    }
+    out
+}
+
+/// Escapes `*`, `?` and `[` so Robot Framework's `--test` matches them literally.
+fn escape_test_pattern(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    for c in name.chars() {
+        match c {
+            '*' | '?' | '[' => {
+                out.push('[');
+                out.push(c);
+                out.push(']');
+            }
+            _ => out.push(c),
+        }
+    }
+    out
 }
 
 fn env_object(env: Vec<(String, String)>) -> serde_json::Value {
@@ -252,6 +293,28 @@ mod tests {
         assert_eq!(robot_arguments("python3", &strings(&["script.py"])), None);
         assert_eq!(robot_arguments("cargo", &strings(&["test"])), None);
         assert_eq!(robot_arguments("robotcode", &strings(&["analyze"])), None);
+    }
+
+    #[test]
+    fn exact_test_names_become_escaped_test_patterns() {
+        let args = strings(&[
+            "robot",
+            "--name",
+            "Robot",
+            "--by-longname",
+            "\"Robot.Login [smoke] * works?\"",
+            "\"a.robot\"",
+        ]);
+        assert_eq!(
+            robot_arguments("robotcode", &args),
+            Some(strings(&[
+                "--name",
+                "Robot",
+                "--test",
+                "Robot.Login [[]smoke] [*] works[?]",
+                "a.robot"
+            ]))
+        );
     }
 
     #[test]

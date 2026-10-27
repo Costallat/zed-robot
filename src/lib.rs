@@ -1,4 +1,5 @@
 mod debugger;
+mod labels;
 mod robotcode;
 
 use zed_extension_api::{
@@ -39,6 +40,22 @@ impl zed::Extension for RobotFrameworkExtension {
             args,
             env: launch.env,
         })
+    }
+
+    fn label_for_completion(
+        &self,
+        _id: &LanguageServerId,
+        completion: zed::lsp::Completion,
+    ) -> Option<zed::CodeLabel> {
+        labels::completion(&completion)
+    }
+
+    fn label_for_symbol(
+        &self,
+        _id: &LanguageServerId,
+        symbol: zed::lsp::Symbol,
+    ) -> Option<zed::CodeLabel> {
+        labels::symbol(&symbol)
     }
 
     fn language_server_initialization_options(

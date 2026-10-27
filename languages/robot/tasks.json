@@ -6,7 +6,17 @@
   {
     "label": "robot: test $ZED_CUSTOM_robot_test_name",
     "command": "robotcode",
-    "args": ["robot", "--test", "\"$ZED_CUSTOM_robot_test_name\"", "\"$ZED_FILE\""],
+    // --by-longname matches the name exactly, unlike --test, which treats
+    // `*`, `?` and `[...]` in it as patterns. It needs the suite's full name,
+    // which --name fixes to "Robot" (no dots, unlike some file names).
+    "args": [
+      "robot",
+      "--name",
+      "Robot",
+      "--by-longname",
+      "\"Robot.$ZED_CUSTOM_robot_test_name\"",
+      "\"$ZED_FILE\""
+    ],
     "cwd": "$ZED_WORKTREE_ROOT",
     "tags": ["robot-test"]
   },
@@ -56,19 +66,20 @@
     "args": ["libdoc", "\"$ZED_SELECTED_TEXT\"", "list"],
     "cwd": "$ZED_WORKTREE_ROOT"
   },
-  // Results of the last run (robot writes log.html / report.html to the
-  // directory it runs in, the project root for the tasks above, unless
-  // robot.toml sets output-dir).
+  // Results of the last run, in robot.toml's output-dir (as reported by
+  // `robotcode config show`), else in the project root. `python` rather than
+  // `python3`, which Windows and virtualenvs on Windows do not have; the file
+  // URI is built by Python so Windows paths work too.
   {
     "label": "robot: open log.html",
-    "command": "python3",
-    "args": ["-m", "webbrowser", "-t", "\"file://$ZED_WORKTREE_ROOT/log.html\""],
+    "command": "python",
+    "args": ["-c", "\"import json,pathlib,subprocess,sys,webbrowser; out=subprocess.run(['robotcode','--format','json','config','show'],capture_output=True,text=True).stdout; d=pathlib.Path.cwd()/(json.loads(out or '{}').get('output-dir') or '.'); f=d/sys.argv[1] if (d/sys.argv[1]).exists() else pathlib.Path.cwd()/sys.argv[1]; print('Opening',f); webbrowser.open_new_tab(f.as_uri())\"", "log.html"],
     "cwd": "$ZED_WORKTREE_ROOT"
   },
   {
     "label": "robot: open report.html",
-    "command": "python3",
-    "args": ["-m", "webbrowser", "-t", "\"file://$ZED_WORKTREE_ROOT/report.html\""],
+    "command": "python",
+    "args": ["-c", "\"import json,pathlib,subprocess,sys,webbrowser; out=subprocess.run(['robotcode','--format','json','config','show'],capture_output=True,text=True).stdout; d=pathlib.Path.cwd()/(json.loads(out or '{}').get('output-dir') or '.'); f=d/sys.argv[1] if (d/sys.argv[1]).exists() else pathlib.Path.cwd()/sys.argv[1]; print('Opening',f); webbrowser.open_new_tab(f.as_uri())\"", "report.html"],
     "cwd": "$ZED_WORKTREE_ROOT"
   },
   {

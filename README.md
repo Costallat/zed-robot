@@ -17,7 +17,8 @@ A [Zed](https://zed.dev) extension for [Robot Framework](https://robotframework.
   built-in keywords stand out from library and your own keywords, library
   prefixes (`OS.Create File`), embedded and named arguments are colored (see
   [Editor features to turn on](#editor-features-to-turn-on)).
-- **Language server**: [RobotCode](https://robotcode.io): completion, hover
+- **Language server**: [RobotCode](https://robotcode.io): completion (colored
+  like the code, with each keyword's library), hover
   docs, go to definition, find references, rename, signature help, inlay hints,
   and diagnostics from Robot Framework's own analysis.
 - **Linting**: [Robocop](https://robocop.dev) rules show up as diagnostics as you type (run by RobotCode).
@@ -346,9 +347,15 @@ To use your own `tasks.json`, give its Robot tasks the tags `robot-test` (the
 test name is in `$ZED_CUSTOM_robot_test_name`) or `robot-suite`. Tasks whose
 command is `robot`, `robotcode robot` or `python -m robot` can be debugged too.
 
+The run button next to a test selects it by its exact name (RobotCode's
+`--by-longname`), so names containing `*`, `?` or `[...]` run just that test.
+For this the suite is named `Robot` in that run's log and report.
+
 **Test results.** `robot: open log.html` and `robot: open report.html` open
-the last run's results in your browser (from the project root, where the tasks
-above write them unless `robot.toml` sets `output-dir`). In a dev container or
+the last run's results in your browser. They look in the `output-dir` set in
+`robot.toml` (or RobotCode's user configuration), else in the project root.
+They need `python` (as in any virtualenv) on the `PATH` of Zed's terminal.
+In a dev container or
 remote project there is no browser to open; run `robot: serve results on port
 8000` instead and open <http://localhost:8000/log.html> with port 8000
 forwarded to your machine.
@@ -511,6 +518,7 @@ CI fails if `src/` is not regenerated or `extension.toml` points at an older gra
 - `src/lib.rs`: extension entry points
 - `src/robotcode.rs`: finds, downloads and launches RobotCode; installs Robocop
 - `src/debugger.rs`: debug adapter, `debug.json` handling, task-to-debug conversion
+- `src/labels.rs`: colors of completion items and symbols
 - `tree-sitter-robot/`: the grammar
 - `languages/robot/`: language configuration, tree-sitter queries, tasks and
   semantic token rules (`semantic_token_rules.json`)
