@@ -1,4 +1,4 @@
 # Number of files in Robot Framework's atest/ that the grammar fails to parse,
 # checked by scripts/check-real-world.sh. Lower it when the grammar improves;
 # never raise it to make a grammar change pass.
-189
+74

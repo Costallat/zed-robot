@@ -39,6 +39,20 @@ const TRANSLATIONS = require("./translations.json");
 // in projects not using that language.
 const BDD_PREFIXES = ["Given", "When", "Then", "And", "But"];
 
+// What follows the first character of a text token: more characters, then
+// words after single spaces. A lone `&`, `$`, `@` or `%` between words is text
+// too (`Write & Read`).
+const _TEXT_REST = [
+  repeat(choice(/[^\s$@&%{]/, /[$@&%][^{\s]/, /[^$@&%\r\n]\{/)),
+  repeat(
+    seq(
+      " ",
+      optional(choice(seq(/[$@&%]/, " "), "{")),
+      repeat1(choice(/[^\s$@&%{]/, /[$@&%][^{\s]/, /[^$@&%\r\n]\{/)),
+    ),
+  ),
+];
+
 function caseInsensitive(keyword) {
   return new RegExp(
     keyword
@@ -57,11 +71,12 @@ function section_header($, name, translations = []) {
     alias(
       token(
         seq(
-          "***",
-          optional(" "),
+          // Robot Framework accepts one or more asterisks: `*Settings*`.
+          /\*+/,
+          optional(/ +/),
           names.length === 1 ? names[0] : choice(...names),
-          optional(" "),
-          "***",
+          optional(/ */),
+          optional(/\*+/),
         ),
       ),
       $.section_header,
@@ -78,6 +93,8 @@ module.exports = grammar({
 
   conflicts: ($) => [
     [$.keyword_invocation],
+    [$._assigned_keyword_invocation],
+    [$.inline_if_statement],
     [$.variable_assignment],
     [$.var_statement],
     [$.arguments],
@@ -173,15 +190,16 @@ module.exports = grammar({
         repeat(choice($.keyword_definition, $._empty_line)),
       ),
     keyword_definition: ($) =>
-      seq(
+      prec.right(seq(
         alias($.keyword_name, $.name),
         optional(seq($._separator, $.keyword_setting)),
         $._line_break,
-        alias($.keyword_definition_body, $.body),
-      ),
+        // Empty keywords and tests parse; Robot Framework reports them when run.
+        optional(alias($.keyword_definition_body, $.body)),
+      )),
     keyword_name: ($) =>
       seq(
-        $.name_chunk,
+        choice($.name_chunk, $.scalar_variable),
         repeat(seq(optional(" "), choice($.name_chunk, $.scalar_variable))),
       ),
     name_chunk: ($) => $._text_chunk,
@@ -236,19 +254,49 @@ module.exports = grammar({
       ),
 
     test_case_definition: ($) =>
-      seq(
-        alias($.text_chunk, $.name),
+      prec.right(seq(
+        alias($.test_case_name, $.name),
         choice(
-          // Data-driven tests have arguments
+          // Data-driven tests have arguments, and may go on with more rows
           seq(
             alias($.arguments_without_continuation, $.arguments),
             $._line_break,
+            optional(alias($._data_driven_body, $.body)),
           ),
 
           // Regular tests have bodies
-          seq($._line_break, alias($.test_case_definition_body, $.body)),
+          seq($._line_break, optional(alias($.test_case_definition_body, $.body))),
+        ),
+      )),
+    // Test names may contain variables: `Modifying ${TEST TAGS} works`.
+    test_case_name: ($) =>
+      seq(
+        $._text_chunk,
+        repeat(
+          seq(
+            optional(" "),
+            choice(
+              $._text_chunk,
+              $.scalar_variable,
+              $.list_variable,
+              $.dictionary_variable,
+            ),
+          ),
         ),
       ),
+
+    // Rows after a data-driven test's first line: they start right below it,
+    // or the empty lines after the test would belong to it.
+    _data_driven_body: ($) =>
+      prec.right(
+        seq(
+          $._indentation,
+          choice($.test_case_setting, $.statement),
+          $._line_break,
+          optional($.test_case_definition_body),
+        ),
+      ),
+
     // prec.right is needed to capture $._empty_line more strongly than $.test_case_section
     test_case_definition_body: ($) =>
       prec.right(
@@ -275,6 +323,7 @@ module.exports = grammar({
       choice(
         ...[
           "Documentation",
+          "Metadata",
           "Tags",
           "Setup",
           "Teardown",
@@ -313,7 +362,7 @@ module.exports = grammar({
       prec.right(
         seq(
           "RETURN",
-          optional(seq($._separator, alias($.argument, $.return_value))),
+          repeat(seq($._separator, alias($.argument, $.return_value))),
         ),
       ),
 
@@ -324,11 +373,13 @@ module.exports = grammar({
         $._assignment_target,
         repeat(seq($._separator, $._assignment_target)),
         optional(choice("=", " =")),
-        optional(seq($._separator, $.keyword_invocation)),
+        optional(
+          seq($._separator, alias($._assigned_keyword_invocation, $.keyword_invocation)),
+        ),
       ),
 
     _assignment_target: ($) =>
-      seq(choice("${", "@{", "&{"), $.variable_name, "}", repeat($.item_access)),
+      seq(choice("${", "@{", "&{"), $._variable_body, "}", repeat($.item_access)),
 
     // Robot Framework 7: VAR    ${name}    value    scope=SUITE
     var_statement: ($) =>
@@ -352,8 +403,36 @@ module.exports = grammar({
 
     keyword: ($) =>
       seq(
-        /[^\[{]/,
-        repeat(seq(optional(" "), choice($.name_chunk, $.scalar_variable))),
+        choice(
+          /[^\[{]/,
+          // The first word as a whole: longer than `IF`, `FOR`, `TRY`, ...
+          // when the keyword only starts with one (`FOR in keyword`).
+          alias($._keyword_start, $.name_chunk),
+          // Rows of templated tests are arguments, not keywords:
+          // `${{[1, 2]}}    [1, 2]`, `${SPACE}test    test`.
+          $.inline_python_expression,
+          seq(
+            $.scalar_variable,
+            optional(" "),
+            choice(alias($._keyword_after_variable, $.name_chunk), $.scalar_variable),
+          ),
+        ),
+        repeat(seq(optional(" "), $._keyword_piece)),
+      ),
+
+    _keyword_piece: ($) =>
+      choice($.name_chunk, $.scalar_variable, $.list_variable, $.dictionary_variable),
+
+    // After an assignment the keyword may also start with `[` (`${x} =    [1, 2]`
+    // in a templated test): a setting cannot start there.
+    _assigned_keyword_invocation: ($) =>
+      seq(
+        optional($.bdd_prefix),
+        choice(
+          $.keyword,
+          alias($._bracket_keyword, $.keyword),
+        ),
+        optional($.arguments),
       ),
 
     if_statement: ($) =>
@@ -403,10 +482,19 @@ module.exports = grammar({
         "IF",
         $._separator,
         field("condition", $.argument),
-        $._separator,
+        $._inline_separator,
         $.inline_statement,
-        repeat(seq($._separator, $.inline_elseif_statement)),
-        optional(seq($._separator, $.inline_else_statement)),
+        repeat(seq($._inline_separator, $.inline_elseif_statement)),
+        optional(seq($._inline_separator, $.inline_else_statement)),
+      ),
+
+    // Between the parts of an inline IF, which may go on on a `...` line:
+    //     IF    $pattern
+    //     ...    Should Match Regexp    ${message}    ${pattern}
+    _inline_separator: ($) =>
+      choice(
+        $._separator,
+        seq($._line_break, optional($._indentation), $.ellipses, $._separator),
       ),
 
     block: ($) =>
@@ -688,16 +776,21 @@ module.exports = grammar({
     item_access: ($) => token.immediate(prec(2, seq("[", /[^\]\r\n]*/, "]"))),
 
     inline_python_expression: ($) =>
-      seq("${{", $.python_expression, "}}"),
+      seq(
+        choice("${{", "@{{", "&{{"),
+        $.python_expression,
+        "}}",
+        repeat($.item_access),
+      ),
 
     python_expression: ($) =>
       repeat1(
         choice(
           alias($._python_string, $.python_string),
           alias(token(/[^()\[\]{}'"]+/), $.python_chunk),
-          seq("(", $.python_expression, ")"),
-          seq("[", $.python_expression, "]"),
-          seq("{", $.python_expression, "}")
+          seq("(", optional($.python_expression), ")"),
+          seq("[", optional($.python_expression), "]"),
+          seq("{", optional($.python_expression), "}")
         )
       ),
 
@@ -711,7 +804,9 @@ module.exports = grammar({
 
     // Variable names may contain other variables: ${devices.${type}.ip}
     variable_name: ($) =>
-      repeat1(choice($._variable_name_chunk, $.scalar_variable)),
+      repeat1(
+        choice($._variable_name_chunk, $.scalar_variable, $.environment_variable),
+      ),
     _variable_name_chunk: ($) =>
       token(repeat1(choice(/[^{}\[\]$@&%]/, /[$@&%][^{}\[\]]/))),
 
@@ -727,14 +822,27 @@ module.exports = grammar({
             /[$@&%][^{\s]/,
             /[^$@&%\r\n]\{/,
           ),
-          repeat(choice(/[^\s$@&%{]/, /[$@&%][^{\s]/, /[^$@&%\r\n]\{/)),
-          repeat(
-            seq(
-              " ",
-              repeat1(choice(/[^\s$@&%{]/, /[$@&%][^{\s]/, /[^$@&%\r\n]\{/)),
-            ),
-          ),
+          ..._TEXT_REST,
         ),
+      ),
+
+    // Like _text_chunk, but not starting with `[` (a setting).
+    _keyword_start: ($) =>
+      token(
+        seq(
+          choice(/[^\s$@&%#\[]/, /[$@&%][^{\s]/),
+          ..._TEXT_REST,
+        ),
+      ),
+    // Text right after a variable starting a keyword cell: not `=`, which
+    // makes the variable an assignment (`${x}=    Keyword`).
+    _keyword_after_variable: ($) =>
+      token(seq(choice(/[^\s$@&%#=]/, /[$@&%][^{\s]/), ..._TEXT_REST)),
+    _bracket_start: ($) => token(seq("[", ..._TEXT_REST)),
+    _bracket_keyword: ($) =>
+      seq(
+        alias($._bracket_start, $.name_chunk),
+        repeat(seq(optional(" "), $._keyword_piece)),
       ),
 
     // Text inside an argument: like _text_chunk, but stops at `=` (see
@@ -751,6 +859,7 @@ module.exports = grammar({
           repeat(
             seq(
               " ",
+              optional(choice(seq(/[$@&%]/, " "), "{")),
               repeat1(choice(/[^\s$@&%{=\\]/, /[$@&%][^{=\\\s]/, /[^$@&%=\\\r\n]\{/)),
             ),
           ),

@@ -1,0 +1,455 @@
+================================================================================
+Names with & and variables
+================================================================================
+
+*** Test Cases ***
+Write & Read
+    Args & Kwargs    a
+
+Modifying ${TEST TAGS} has no effect
+    No Operation
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk)))))))
+      (test_case_definition
+        (name
+          (scalar_variable
+            (variable_name)))
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))
+
+================================================================================
+Keywords starting with a control word
+================================================================================
+
+*** Test Cases ***
+Control words
+    FOR in keyword
+    IF Branch Should Be Empty    ${tc}
+    TRY:FAIL    EXCEPT:NOT RUN
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (scalar_variable
+                    (variable_name))))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk))))))))))
+
+================================================================================
+Inline Python: empty brackets, list and dict forms, item access
+================================================================================
+
+*** Test Cases ***
+Python
+    Should Be Equal    ${{()}}    ${{[]}}
+    Log Many    @{{[1, 2]}}    &{{{'a': 1}}}
+    Log    ${{[1, 2]}}[0]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (inline_python_expression
+                    (python_expression)))
+                (argument
+                  (inline_python_expression
+                    (python_expression))))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (inline_python_expression
+                    (python_expression
+                      (python_expression
+                        (python_chunk)))))
+                (argument
+                  (inline_python_expression
+                    (python_expression
+                      (python_expression
+                        (python_string)
+                        (python_chunk))))))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (inline_python_expression
+                    (python_expression
+                      (python_expression
+                        (python_chunk)))
+                    (item_access)))))))))))
+
+================================================================================
+RETURN with several values and typed assignments
+================================================================================
+
+*** Keywords ***
+Values
+    @{x: list[int]} =    Create List    1    2
+    ${d}[key] =    Set Variable    1
+    RETURN    ${a}    @{rest}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (keywords_section
+      (section_header)
+      (keyword_definition
+        (name
+          (name_chunk))
+        (body
+          (statement
+            (variable_assignment
+              (variable_name)
+              (variable_key)
+              (keyword_invocation
+                (keyword
+                  (name_chunk))
+                (arguments
+                  (argument
+                    (text_chunk))
+                  (argument
+                    (text_chunk))))))
+          (statement
+            (variable_assignment
+              (variable_name)
+              (item_access)
+              (keyword_invocation
+                (keyword
+                  (name_chunk))
+                (arguments
+                  (argument
+                    (text_chunk))))))
+          (statement
+            (return_statement
+              (return_value
+                (scalar_variable
+                  (variable_name)))
+              (return_value
+                (list_variable
+                  (variable_name))))))))))
+
+================================================================================
+Section headers with one asterisk
+================================================================================
+
+*Settings*
+Library    Collections
+
+*Test Cases*
+T
+    No Operation
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (settings_section
+      (section_header)
+      (setting_statement
+        name: (setting_name)
+        (arguments
+          (argument
+            (text_chunk))))))
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))
+
+================================================================================
+Data-driven test with more rows
+================================================================================
+
+*** Test Cases ***    INPUT    OUTPUT
+Timestamp    2014-04-24    2014-04-24
+    2014-04-25    2014-04-25
+
+Next
+    No Operation
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (extra_text)
+      (test_case_definition
+        (name)
+        (arguments
+          (argument
+            (text_chunk))
+          (argument
+            (text_chunk)))
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk)))))))
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))
+
+================================================================================
+Keyword names starting with a variable and empty keywords
+================================================================================
+
+*** Keywords ***
+${x} Framework
+    No Operation
+
+Empty
+
+Another
+    No Operation
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (keywords_section
+      (section_header)
+      (keyword_definition
+        (name
+          (scalar_variable
+            (variable_name))
+          (name_chunk))
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))))))
+      (keyword_definition
+        (name
+          (name_chunk)))
+      (keyword_definition
+        (name
+          (name_chunk))
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))
+
+================================================================================
+Inline IF continued on the next line
+================================================================================
+
+*** Test Cases ***
+T
+    IF    $pattern
+    ...    Should Match Regexp    ${message}    ${pattern}
+    No Operation
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (inline_if_statement
+              condition: (argument
+                (text_chunk))
+              (ellipses)
+              (inline_statement
+                (keyword_invocation
+                  (keyword
+                    (name_chunk))
+                  (arguments
+                    (argument
+                      (scalar_variable
+                        (variable_name)))
+                    (argument
+                      (scalar_variable
+                        (variable_name))))))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))
+
+================================================================================
+Templated rows starting with a value
+================================================================================
+
+*** Test Cases ***
+T
+    [Template]    Should Be Equal
+    ${SPACE}test    test
+    ${{[1, 2]}}    [1, 2]
+    {}    x
+    ${x}    ['a', 2]
+    Log    %{%{NAME}_${suffix}}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (test_case_setting
+            name: (test_case_setting_name)
+            (arguments
+              (argument
+                (text_chunk))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (scalar_variable
+                  (variable_name))
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk)))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (inline_python_expression
+                  (python_expression
+                    (python_expression
+                      (python_chunk)))))
+              (arguments
+                (argument
+                  (text_chunk)))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk)))))
+          (statement
+            (variable_assignment
+              (variable_name)
+              (keyword_invocation
+                (keyword
+                  (name_chunk)))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (environment_variable
+                    (variable_name
+                      (environment_variable
+                        (variable_name))
+                      (scalar_variable
+                        (variable_name)))))))))))))
+
+================================================================================
+Metadata in tests and deprecated translated settings
+================================================================================
+
+Language: fi
+
+*** Asetukset ***
+Testin Tagit    a
+
+*** Test Cases ***
+T
+    [Metadata]    Owner    Team
+    No Operation
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (extra_text)
+  (section
+    (settings_section
+      (section_header)
+      (setting_statement
+        name: (setting_name)
+        (arguments
+          (argument
+            (text_chunk))))))
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (test_case_setting
+            name: (test_case_setting_name)
+            (arguments
+              (argument
+                (text_chunk))
+              (argument
+                (text_chunk))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk)))))))))

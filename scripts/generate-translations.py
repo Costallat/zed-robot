@@ -45,10 +45,13 @@ def translated(attribute_names):
     for language in Language.__subclasses__():
         if language.code == "en":
             continue
-        for attribute in attribute_names:
-            value = getattr(language, attribute, None)
-            if value:
-                names.add(value)
+        values = {getattr(language, attribute, None) for attribute in attribute_names}
+        names.update(value for value in values if value)
+        # Renamed terms keep working, with a deprecation warning, so files
+        # written with the old name (Finnish `Testin Tagit`) still parse.
+        for old, (new, _version) in getattr(language, "deprecations", {}).items():
+            if new in values:
+                names.add(old)
     return sorted(names)
 
 
