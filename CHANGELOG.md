@@ -5,6 +5,8 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
 
 ## Unreleased
 
+## 0.5.0 - 2026-10-27
+
 ### Added
 
 - Escape sequences (`\n`, `\${not_a_variable}`, `\#`, `\x41`, ...) are
@@ -53,7 +55,8 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
 ### Documentation
 
 - `robot.toml` schema for every file of a project through `.taplo.toml`.
-- Release steps and this changelog.
+- Release steps and this changelog; pushing a `v*` tag publishes the GitHub
+  release with the version's changelog notes.
 
 ## 0.4.1 - 2026-10-23
 
