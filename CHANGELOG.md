@@ -5,6 +5,16 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
 
 ## Unreleased
 
+### Fixed
+
+- Item access followed by more of the name parses: `${tc[1].full_name}`,
+  `${SUITE.tests[0].name}`, and variables inside a subscript with other text,
+  `${tc[0, ${index}]}`.
+- Settings and variables with no value parse: `[Tags]` or `Documentation`
+  alone on a line, `@{EMPTY LIST}` in `*** Variables ***`.
+- Files in Robot Framework's own `atest/` with parse errors: 189 of 1359
+  (was 353).
+
 ## 0.5.0 - 2026-10-27
 
 ### Added

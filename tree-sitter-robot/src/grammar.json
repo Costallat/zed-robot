@@ -497,8 +497,16 @@
           }
         },
         {
-          "type": "SYMBOL",
-          "name": "arguments"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "arguments"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "SYMBOL",
@@ -2554,8 +2562,16 @@
           ]
         },
         {
-          "type": "SYMBOL",
-          "name": "arguments"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "arguments"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "SYMBOL",
@@ -2948,8 +2964,16 @@
           "value": "]"
         },
         {
-          "type": "SYMBOL",
-          "name": "arguments"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "arguments"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
@@ -4045,8 +4069,16 @@
           "value": "]"
         },
         {
-          "type": "SYMBOL",
-          "name": "arguments"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "arguments"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
@@ -6160,14 +6192,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "variable_name"
-        },
-        {
-          "type": "REPEAT",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_item_access"
-          }
+          "name": "_variable_body"
         },
         {
           "type": "CHOICE",
@@ -6215,14 +6240,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "variable_name"
-        },
-        {
-          "type": "REPEAT",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_item_access"
-          }
+          "name": "_variable_body"
         },
         {
           "type": "CHOICE",
@@ -6270,14 +6288,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "variable_name"
-        },
-        {
-          "type": "REPEAT",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_item_access"
-          }
+          "name": "_variable_body"
         },
         {
           "type": "CHOICE",
@@ -6321,6 +6332,39 @@
         }
       ]
     },
+    "_variable_body": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "variable_name"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_item_access"
+              },
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "variable_name"
+                  },
+                  {
+                    "type": "BLANK"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
     "_item_access": {
       "type": "SEQ",
       "members": [
@@ -6329,17 +6373,20 @@
           "value": "["
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "variable_key"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "scalar_variable"
-            }
-          ]
+          "type": "REPEAT1",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "variable_key"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "scalar_variable"
+              }
+            ]
+          }
         },
         {
           "type": "STRING",
@@ -6788,6 +6835,12 @@
     ],
     [
       "continuation"
+    ],
+    [
+      "keyword_setting"
+    ],
+    [
+      "test_case_setting"
     ],
     [
       "block"

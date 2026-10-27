@@ -82,6 +82,9 @@ module.exports = grammar({
     [$.var_statement],
     [$.arguments],
     [$.continuation],
+    // `[Tags]` may end at the line break or continue on a `...` line.
+    [$.keyword_setting],
+    [$.test_case_setting],
     [$.block],
     [$.except_statement],
     [$.except_statement, $.continuation],
@@ -134,7 +137,7 @@ module.exports = grammar({
         repeat(choice($.setting_statement, $._empty_line)),
       ),
     setting_statement: ($) =>
-      seq(field("name", $.setting_name), $.arguments, $._line_break),
+      seq(field("name", $.setting_name), optional($.arguments), $._line_break),
     setting_name: ($) =>
       choice(
         ...[...SETTINGS_KEYWORDS, ...TRANSLATIONS.section_settings].map(
@@ -155,7 +158,8 @@ module.exports = grammar({
       seq(
         choice($.scalar_variable, $.dictionary_variable, $.list_variable),
         optional(choice("=", " =")),
-        $.arguments,
+        // `@{EMPTY LIST}` alone on its line is an empty list.
+        optional($.arguments),
         $._line_break,
       ),
 
@@ -201,7 +205,8 @@ module.exports = grammar({
         field("name", $.keyword_setting_name),
         optional(" "),
         "]",
-        $.arguments,
+        // `[Tags]` alone on its line sets an empty value.
+        optional($.arguments),
       ),
     keyword_setting_name: ($) =>
       choice(
@@ -263,7 +268,8 @@ module.exports = grammar({
         field("name", $.test_case_setting_name),
         optional(" "),
         "]",
-        $.arguments,
+        // `[Tags]` alone on its line sets an empty value.
+        optional($.arguments),
       ),
     test_case_setting_name: ($) =>
       choice(
@@ -638,8 +644,7 @@ module.exports = grammar({
       seq(
         "${",
         optional(" "),
-        $.variable_name,
-        repeat($._item_access),
+        $._variable_body,
         optional(" "),
         "}",
         repeat($.item_access),
@@ -649,8 +654,7 @@ module.exports = grammar({
       seq(
         "@{",
         optional(" "),
-        $.variable_name,
-        repeat($._item_access),
+        $._variable_body,
         optional(" "),
         "}",
         repeat($.item_access),
@@ -660,8 +664,7 @@ module.exports = grammar({
       seq(
         "&{",
         optional(" "),
-        $.variable_name,
-        repeat($._item_access),
+        $._variable_body,
         optional(" "),
         "}",
         repeat($.item_access),
@@ -670,9 +673,14 @@ module.exports = grammar({
     // %{HOME} or %{NAME=default}
     environment_variable: ($) => seq("%{", $.variable_name, "}"),
 
-    // ${dict}[key], ${list}[0], ${data}[${index}]
+    // The name, then item access and extended syntax in any order:
+    // ${tc[1].full_name}, ${SUITE.tests[0].name}
+    _variable_body: ($) =>
+      seq($.variable_name, repeat(seq($._item_access, optional($.variable_name)))),
+
+    // ${dict}[key], ${list}[0], ${data}[${index}], ${tc[0, ${index}]}
     _item_access: ($) =>
-      seq("[", choice($.variable_key, $.scalar_variable), "]"),
+      seq("[", repeat1(choice($.variable_key, $.scalar_variable)), "]"),
 
     // Item access written after the variable: ${list}[0], ${dict}[key],
     // ${data}[${index}][name]. Directly after the closing brace, so it wins
