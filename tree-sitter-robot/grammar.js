@@ -114,7 +114,14 @@ module.exports = grammar({
     comments_section: ($) =>
       seq(
         section_header($, "Comments", TRANSLATIONS.headers.comments),
-        repeat(choice($.comment, $._empty_line)),
+        // Robot Framework ignores everything here, `#` or not.
+        repeat(
+          choice(
+            $.comment,
+            $._empty_line,
+            seq(alias(/[ \t]*[^*#\s][^\r\n]*/, $.comment), $._line_break),
+          ),
+        ),
       ),
 
     //
@@ -304,12 +311,18 @@ module.exports = grammar({
         ),
       ),
 
+    // ${result} =    Keyword    args
+    // ${first}    @{rest} =    Keyword    (several targets)
     variable_assignment: ($) =>
       seq(
-        seq("${", $.variable_name, "}"),
+        $._assignment_target,
+        repeat(seq($._separator, $._assignment_target)),
         optional(choice("=", " =")),
-        optional($.arguments),
+        optional(seq($._separator, $.keyword_invocation)),
       ),
+
+    _assignment_target: ($) =>
+      seq(choice("${", "@{", "&{"), $.variable_name, "}", repeat($.item_access)),
 
     // Robot Framework 7: VAR    ${name}    value    scope=SUITE
     var_statement: ($) =>
@@ -383,7 +396,7 @@ module.exports = grammar({
       seq(
         "IF",
         $._separator,
-        $.argument,
+        field("condition", $.argument),
         $._separator,
         $.inline_statement,
         repeat(seq($._separator, $.inline_elseif_statement)),
@@ -402,7 +415,7 @@ module.exports = grammar({
           // Conflicts with $.arguments
           "ELSE IF",
           $._separator,
-          $.argument,
+          field("condition", $.argument),
           $._separator,
           $.inline_statement,
         ),
@@ -564,24 +577,58 @@ module.exports = grammar({
     indented_ellipses: ($) =>
       token(seq(/[ ]{2}|\t/, optional(/[ \t]+/), "...")),
 
+    // An argument is text, variables and escapes run together. Text directly
+    // followed by `=` is an argument_name: `timeout=10s`, `level=INFO`,
+    // dictionary items `name=bob` (not `a == b`, nor `a\=b`). Whether it is
+    // really a named argument depends on the keyword; highlights.scm only
+    // colors names that are identifiers.
     argument: ($) =>
-      seq(
-        choice(
-          $.text_chunk,
-          $.scalar_variable,
-          $.list_variable,
-          $.dictionary_variable,
-          $.environment_variable,
-          $.inline_python_expression,
-        ),
-        repeat(
+      choice(
+        prec(
+          1,
           seq(
-            optional(" "),
+            alias($._argument_text, $.argument_name),
+            "=",
+            optional($._argument_rest),
+          ),
+        ),
+        seq(
+          choice(
+            $._argument_piece,
+            $.list_variable,
+            $.dictionary_variable,
+            "=",
+          ),
+          optional($._argument_rest),
+        ),
+      ),
+
+    _argument_rest: ($) =>
+      repeat1(seq(optional(" "), choice($._argument_piece, "="))),
+
+    _argument_piece: ($) =>
+      choice(
+        alias($._argument_text, $.text_chunk),
+        // A `$`, `@`, `&` or `%` that starts no variable, e.g. at the end of
+        // the argument (`prompt=$`).
+        alias(/[$@&%]/, $.text_chunk),
+        $.escape_sequence,
+        $.scalar_variable,
+        $.environment_variable,
+        $.inline_python_expression,
+      ),
+
+    // \n, \t, \x41, \u00e9, \${not_a_variable}, \#not_a_comment, \\ ...
+    escape_sequence: ($) =>
+      token(
+        seq(
+          "\\",
+          optional(
             choice(
-              $.text_chunk,
-              $.scalar_variable,
-              $.environment_variable,
-              $.inline_python_expression,
+              /x[0-9a-fA-F]{2}/,
+              /u[0-9a-fA-F]{4}/,
+              /U[0-9a-fA-F]{8}/,
+              /[^\r\n]/,
             ),
           ),
         ),
@@ -669,14 +716,34 @@ module.exports = grammar({
         seq(
           choice(
             /[^\s$@&%#]/, // Can't start with a #, since that would be a comment
-            /[$@&%][^{]/,
-            /[^$@&%]\{/,
+            /[$@&%][^{\s]/,
+            /[^$@&%\r\n]\{/,
           ),
-          repeat(choice(/[^\s$@&%{]/, /[$@&%][^{]/, /[^$@&%]\{/)),
+          repeat(choice(/[^\s$@&%{]/, /[$@&%][^{\s]/, /[^$@&%\r\n]\{/)),
           repeat(
             seq(
               " ",
-              repeat1(choice(/[^\s$@&%{]/, /[$@&%][^{]/, /[^$@&%]\{/)),
+              repeat1(choice(/[^\s$@&%{]/, /[$@&%][^{\s]/, /[^$@&%\r\n]\{/)),
+            ),
+          ),
+        ),
+      ),
+
+    // Text inside an argument: like _text_chunk, but stops at `=` (see
+    // argument) and at `\` (see escape_sequence).
+    _argument_text: ($) =>
+      token(
+        seq(
+          choice(
+            /[^\s$@&%#=\\]/,
+            /[$@&%][^{=\\\s]/,
+            /[^$@&%=\\\r\n]\{/,
+          ),
+          repeat(choice(/[^\s$@&%{=\\]/, /[$@&%][^{=\\\s]/, /[^$@&%=\\\r\n]\{/)),
+          repeat(
+            seq(
+              " ",
+              repeat1(choice(/[^\s$@&%{=\\]/, /[$@&%][^{=\\\s]/, /[^$@&%=\\\r\n]\{/)),
             ),
           ),
         ),

@@ -28,3 +28,33 @@ Only comments section
       (comment)
       (comment)
       (comment))))
+
+================================================================================
+Comments section with plain text
+================================================================================
+
+*** Comments ***
+Anything here is ignored.
+    Even indented    text with ${variables}.
+# and normal comments
+
+*** Settings ***
+Library    Collections
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (comments_section
+      (section_header)
+      (comment)
+      (comment)
+      (comment)))
+  (section
+    (settings_section
+      (section_header)
+      (setting_statement
+        (setting_name)
+        (arguments
+          (argument
+            (text_chunk)))))))

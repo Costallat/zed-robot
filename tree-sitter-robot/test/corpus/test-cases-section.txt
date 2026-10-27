@@ -157,6 +157,7 @@ Test That Something Works
               (argument
                 (text_chunk))
               (argument
+                (argument_name)
                 (text_chunk))))
           (test_case_setting
             (test_case_setting_name)

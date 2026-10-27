@@ -205,6 +205,7 @@ Test Keyword
                 (name_chunk))
               (arguments
                 (argument
+                  (argument_name)
                   (text_chunk)))))
           (statement
             (keyword_invocation
@@ -234,20 +235,21 @@ Test Keyword
           (statement
             (variable_assignment
               (variable_name)
-              (arguments
-                (argument
-                  (text_chunk))
-                (argument
-                  (text_chunk))
-                (argument
-                  (scalar_variable
-                    (variable_name))))))
+              (keyword_invocation
+                (keyword
+                  (name_chunk))
+                (arguments
+                  (argument
+                    (text_chunk))
+                  (argument
+                    (scalar_variable
+                      (variable_name)))))))
           (statement
             (variable_assignment
               (variable_name)
-              (arguments
-                (argument
-                  (text_chunk))))))))))
+              (keyword_invocation
+                (keyword
+                  (name_chunk))))))))))
 
 ================================================================================
 Inline Python evaluation
@@ -456,3 +458,66 @@ Test Keyword
                   (text_chunk))
                 (argument
                   (text_chunk))))))))))
+
+================================================================================
+Assigning list, dictionary and several variables
+================================================================================
+
+*** Test Cases ***
+Assign
+    @{items} =    Create List    a    b
+    &{dict}=    Create Dictionary    key=value
+    ${first}    @{rest} =    Split    ${items}
+    ${dict}[key] =    Set Variable    new
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (variable_assignment
+              (variable_name)
+              (keyword_invocation
+                (keyword
+                  (name_chunk))
+                (arguments
+                  (argument
+                    (text_chunk))
+                  (argument
+                    (text_chunk))))))
+          (statement
+            (variable_assignment
+              (variable_name)
+              (keyword_invocation
+                (keyword
+                  (name_chunk))
+                (arguments
+                  (argument
+                    (argument_name)
+                    (text_chunk))))))
+          (statement
+            (variable_assignment
+              (variable_name)
+              (variable_name)
+              (keyword_invocation
+                (keyword
+                  (name_chunk))
+                (arguments
+                  (argument
+                    (scalar_variable
+                      (variable_name)))))))
+          (statement
+            (variable_assignment
+              (variable_name)
+              (item_access)
+              (keyword_invocation
+                (keyword
+                  (name_chunk))
+                (arguments
+                  (argument
+                    (text_chunk)))))))))))

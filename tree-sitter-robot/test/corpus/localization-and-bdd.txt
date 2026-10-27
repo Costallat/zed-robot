@@ -159,12 +159,14 @@ Loop
                 (statement
                   (inline_if_statement
                     (argument
+                      (text_chunk)
                       (text_chunk))
                     (inline_statement
                       (continue_statement))))
                 (statement
                   (inline_if_statement
                     (argument
+                      (text_chunk)
                       (text_chunk))
                     (inline_statement
                       (break_statement))))))))))))

@@ -1,0 +1,108 @@
+================================================================================
+Escape sequences
+================================================================================
+
+*** Test Cases ***
+Escapes
+    Log    Line\nbreak \${not_a_var} \#not_a_comment \\ \x41\u00e9
+    Log    \
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk)
+                  (escape_sequence)
+                  (text_chunk)
+                  (escape_sequence)
+                  (text_chunk)
+                  (escape_sequence)
+                  (text_chunk)
+                  (escape_sequence)
+                  (escape_sequence)
+                  (escape_sequence)))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (escape_sequence))))))))))
+
+================================================================================
+Named arguments
+================================================================================
+
+*** Settings ***
+Library    SSHLibrary    timeout=10s
+
+*** Test Cases ***
+Named
+    Log    hello    level=INFO    html=${True}
+    Log    a\=b    ${x}=y    https://x.com/?q=1    a == b    =
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (settings_section
+      (section_header)
+      (setting_statement
+        (setting_name)
+        (arguments
+          (argument
+            (text_chunk))
+          (argument
+            (argument_name)
+            (text_chunk))))))
+  (section
+    (test_cases_section
+      (section_header)
+      (test_case_definition
+        (name)
+        (body
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk))
+                (argument
+                  (argument_name)
+                  (text_chunk))
+                (argument
+                  (argument_name)
+                  (scalar_variable
+                    (variable_name))))))
+          (statement
+            (keyword_invocation
+              (keyword
+                (name_chunk))
+              (arguments
+                (argument
+                  (text_chunk)
+                  (escape_sequence)
+                  (text_chunk))
+                (argument
+                  (scalar_variable
+                    (variable_name))
+                  (text_chunk))
+                (argument
+                  (argument_name)
+                  (text_chunk))
+                (argument
+                  (text_chunk)
+                  (text_chunk))
+                (argument)))))))))

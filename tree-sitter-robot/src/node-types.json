@@ -5,14 +5,22 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
+        {
+          "type": "argument_name",
+          "named": true
+        },
         {
           "type": "dictionary_variable",
           "named": true
         },
         {
           "type": "environment_variable",
+          "named": true
+        },
+        {
+          "type": "escape_sequence",
           "named": true
         },
         {
@@ -443,15 +451,22 @@
   {
     "type": "inline_elseif_statement",
     "named": true,
-    "fields": {},
+    "fields": {
+      "condition": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "argument",
+            "named": true
+          }
+        ]
+      }
+    },
     "children": {
-      "multiple": true,
+      "multiple": false,
       "required": true,
       "types": [
-        {
-          "type": "argument",
-          "named": true
-        },
         {
           "type": "inline_statement",
           "named": true
@@ -462,15 +477,22 @@
   {
     "type": "inline_if_statement",
     "named": true,
-    "fields": {},
+    "fields": {
+      "condition": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "argument",
+            "named": true
+          }
+        ]
+      }
+    },
     "children": {
       "multiple": true,
       "required": true,
       "types": [
-        {
-          "type": "argument",
-          "named": true
-        },
         {
           "type": "inline_else_statement",
           "named": true
@@ -746,14 +768,22 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
+        {
+          "type": "argument_name",
+          "named": true
+        },
         {
           "type": "dictionary_variable",
           "named": true
         },
         {
           "type": "environment_variable",
+          "named": true
+        },
+        {
+          "type": "escape_sequence",
           "named": true
         },
         {
@@ -1048,11 +1078,6 @@
     }
   },
   {
-    "type": "text_chunk",
-    "named": true,
-    "fields": {}
-  },
-  {
     "type": "try_statement",
     "named": true,
     "fields": {},
@@ -1122,7 +1147,11 @@
       "required": true,
       "types": [
         {
-          "type": "arguments",
+          "type": "item_access",
+          "named": true
+        },
+        {
+          "type": "keyword_invocation",
           "named": true
         },
         {
@@ -1351,6 +1380,10 @@
     "named": false
   },
   {
+    "type": "argument_name",
+    "named": true
+  },
+  {
     "type": "bdd_prefix",
     "named": true
   },
@@ -1372,6 +1405,10 @@
     "named": true
   },
   {
+    "type": "escape_sequence",
+    "named": true
+  },
+  {
     "type": "extra_text",
     "named": true
   },
@@ -1389,6 +1426,10 @@
   },
   {
     "type": "section_header",
+    "named": true
+  },
+  {
+    "type": "text_chunk",
     "named": true
   },
   {

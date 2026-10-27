@@ -41,6 +41,7 @@ I Am Another User Defined Keyword
                 (name_chunk))
               (arguments
                 (argument
+                  (argument_name)
                   (text_chunk))
                 (continuation
                   (ellipses)
@@ -52,6 +53,7 @@ I Am Another User Defined Keyword
                 (name_chunk))
               (arguments
                 (argument
+                  (argument_name)
                   (text_chunk)))))
           (statement
             (keyword_invocation
@@ -71,10 +73,12 @@ I Am Another User Defined Keyword
                 (name_chunk))
               (arguments
                 (argument
+                  (argument_name)
                   (text_chunk))
                 (continuation
                   (ellipses)
                   (argument
+                    (argument_name)
                     (text_chunk))))))
           (statement
             (keyword_invocation

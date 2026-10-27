@@ -150,8 +150,10 @@ ${SCALAR} =    I'm a scalar variable
           (variable_name))
         (arguments
           (argument
+            (argument_name)
             (text_chunk))
           (argument
+            (argument_name)
             (text_chunk)))))))
 
 ================================================================================
@@ -196,6 +198,8 @@ ${NESTED} =    {"outer": {"inner": 1}}
           (variable_name))
         (arguments
           (argument
+            (argument_name)
             (text_chunk))
           (argument
+            (argument_name)
             (text_chunk)))))))

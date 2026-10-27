@@ -35,6 +35,7 @@ Variables
                 (argument
                   (text_chunk))
                 (argument
+                  (argument_name)
                   (text_chunk)))))
           (statement
             (var_statement
@@ -42,10 +43,12 @@ Variables
                 (variable_name))
               (arguments
                 (argument
+                  (argument_name)
                   (text_chunk))
                 (continuation
                   (ellipses)
                   (argument
+                    (argument_name)
                     (text_chunk)))))))))))
 
 ================================================================================
