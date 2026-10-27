@@ -43,3 +43,10 @@ Give Back
     RETURN    ${value}
     #^ keyword
     #         ^ variable
+
+*** Test Cases ***
+Keywords Named Like Control Words
+    FOR in keyword
+    #^ function.call
+    IF Branch Should Be Empty    ${tc}
+    #^ function.call

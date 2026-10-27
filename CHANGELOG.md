@@ -5,6 +5,13 @@ the ones in `extension.toml`; see [Releasing](README.md#releasing).
 
 ## Unreleased
 
+### Added
+
+- The outline panel and breadcrumbs show each keyword's `[Arguments]` (also
+  translated) and named `GROUP` blocks.
+- `@{{ ... }}` and `&{{ ... }}` are highlighted, and get Python highlighting,
+  like `${{ ... }}`.
+
 ### Fixed
 
 - Item access followed by more of the name parses: `${tc[1].full_name}`,

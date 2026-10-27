@@ -34,7 +34,8 @@ A [Zed](https://zed.dev) extension for [Robot Framework](https://robotframework.
   folder or everything (see [Running and debugging tests](#running-and-debugging-tests)).
 - **Snippets** for sections, tests, keywords and control structures (see [Snippets](#snippets)).
 - **Editor structure**: code folding, outline panel and breadcrumbs (with the
-  suite's `Library`/`Resource`/`Variables` imports), auto-indent,
+  suite's `Library`/`Resource`/`Variables` imports, each keyword's
+  `[Arguments]` and named `GROUP` blocks), auto-indent,
   bracket matching, and function/class text objects for keywords, tests and sections.
 
 Files with the `.robot` and `.resource` extensions are recognised.
