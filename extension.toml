@@ -12,7 +12,7 @@ snippets = "snippets/robot framework.json"
 # the grammar.
 [grammars.robot]
 repository = "https://github.com/Costallat/zed-robot"
-rev = "84a34241f7e3ab8d127bc1a451bdfe80a8e8ad6f"
+rev = "02848671d617bcf210c9890866d044861bbad62a"
 path = "tree-sitter-robot"
 
 [language_servers.robotcode]
