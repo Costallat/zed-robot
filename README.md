@@ -571,7 +571,11 @@ lands. To release:
    start a new empty *Unreleased* section above it.
 3. If the grammar changed, make sure `extension.toml` points at it
    (`scripts/pin-grammar.sh --check`).
-4. Commit, merge to `main`, and tag the commit: `git tag v<version> && git push --tags`.
+4. Commit, merge to `main`, and tag the merged commit:
+   `git tag v<version> && git push origin v<version>`. The tag starts the
+   *Release* workflow (`.github/workflows/release.yml`), which checks the tag
+   against the versions and publishes a GitHub release with the version's
+   changelog section as its notes.
 5. Publish it in Zed's extension registry with a pull request to
    [zed-industries/extensions](https://github.com/zed-industries/extensions):
    point the `extensions/robot-framework` submodule at the tagged commit and
