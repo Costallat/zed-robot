@@ -534,14 +534,36 @@ fn sanitize(path: &str) -> String {
 }
 
 fn newest_dir(prefix: &str) -> Option<String> {
-    let mut dirs: Vec<String> = fs::read_dir(".")
+    let names = fs::read_dir(".")
         .ok()?
         .flatten()
-        .map(|entry| entry.file_name().to_string_lossy().to_string())
+        .map(|entry| entry.file_name().to_string_lossy().to_string());
+    newest(prefix, names)
+}
+
+/// The name with the highest version after `prefix` (`robotcode-v2.10.0` is
+/// newer than `robotcode-v2.9.0`).
+fn newest(prefix: &str, names: impl IntoIterator<Item = String>) -> Option<String> {
+    names
+        .into_iter()
         .filter(|name| name.starts_with(prefix))
-        .collect();
-    dirs.sort();
-    dirs.pop()
+        .max_by_key(|name| version_key(&name[prefix.len()..]))
+}
+
+/// Sort key for versions like `v2.10.0`: each dot-separated part compares as a
+/// number by its leading digits, then by the rest (`0rc1`).
+fn version_key(version: &str) -> Vec<(u64, String)> {
+    version
+        .trim_start_matches('v')
+        .split('.')
+        .map(|part| {
+            let digits = part.len() - part.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+            (
+                part[..digits].parse().unwrap_or(0),
+                part[digits..].to_string(),
+            )
+        })
+        .collect()
 }
 
 /// Removes directories starting with `prefix` that belong to another version
@@ -708,6 +730,34 @@ mod tests {
             "robotframework_robocop-9.1.0.dist-info"
         ));
         assert!(!is_excluded_from_robocop("robocop"));
+    }
+
+    #[test]
+    fn newest_version_compares_numbers() {
+        let names = |list: &[&str]| list.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(
+            newest(
+                "robotcode-",
+                names(&[
+                    "robotcode-v2.9.0",
+                    "robotcode-v2.10.0",
+                    "robotcode-v2.8.1",
+                    "other"
+                ])
+            )
+            .as_deref(),
+            Some("robotcode-v2.10.0")
+        );
+        assert_eq!(
+            newest(
+                "robotcode-",
+                names(&["robotcode-v1.9.9", "robotcode-v10.0.0"])
+            )
+            .as_deref(),
+            Some("robotcode-v10.0.0")
+        );
+        assert_eq!(newest("robotcode-", names(&["robocop-v1"])), None);
+        assert!(version_key("v2.10.0") > version_key("v2.9.12"));
     }
 
     #[test]

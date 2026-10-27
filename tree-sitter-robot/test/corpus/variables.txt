@@ -73,7 +73,7 @@ Environment
                   (environment_variable
                     (variable_name)))
                 (argument
-                  (text_chunk)
+                  (argument_name)
                   (environment_variable
                     (variable_name))
                   (text_chunk))))))))))
@@ -102,6 +102,7 @@ Percent
                 (name_chunk))
               (arguments
                 (argument
+                  (argument_name)
                   (text_chunk)))))
           (statement
             (keyword_invocation
@@ -109,4 +110,39 @@ Percent
                 (name_chunk))
               (arguments
                 (argument
+                  (text_chunk)
+                  (text_chunk)
                   (text_chunk))))))))))
+
+================================================================================
+Sigil at the end of an argument
+================================================================================
+
+*** Settings ***
+Library    SSHLibrary    prompt=$
+Library    Other    costs $  10
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (section
+    (settings_section
+      (section_header)
+      (setting_statement
+        (setting_name)
+        (arguments
+          (argument
+            (text_chunk))
+          (argument
+            (argument_name)
+            (text_chunk))))
+      (setting_statement
+        (setting_name)
+        (arguments
+          (argument
+            (text_chunk))
+          (argument
+            (text_chunk)
+            (text_chunk))
+          (argument
+            (text_chunk)))))))

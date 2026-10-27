@@ -1,9 +1,11 @@
 [package]
 name = "zed_robot"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 publish = false
 license = "BSD-2-Clause"
+authors = ["Renato Foot <renato@foot.com>", "José Mendes <mendesfilho@pm.me>"]
+repository = "https://github.com/Costallat/zed-robot"
 
 [lib]
 path = "src/lib.rs"

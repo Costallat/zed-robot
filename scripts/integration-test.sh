@@ -3,7 +3,9 @@
 #   1. a virtualenv with only Robot Framework (like a user's project),
 #   2. the RobotCode release package (.vsix) the extension downloads,
 #   3. Robocop installed with `pip --target`, without Robot Framework,
-#   4. tests/integration/smoke.py against that setup.
+#   4. tests/integration/smoke.py against that setup, then checks that the
+#      sample files as Robocop formats them still parse (needs tree-sitter),
+#   5. tests/integration/tasks.py: the shipped tasks run as Zed runs them.
 #
 #   scripts/integration-test.sh [ROBOTCODE_VERSION]   (default: latest release)
 #
@@ -42,3 +44,19 @@ robocop="$work/robocop"
 rm -rf "$robocop/robot" "$robocop"/robotframework-* "$robocop/bin"
 
 PYTHONPATH="$robocop" "$python" "$root/tests/integration/smoke.py" "$python" "$launcher" "$work/project"
+
+# smoke.py wrote the sample files as Robocop formats them; the grammar must
+# still parse them.
+if command -v tree-sitter > /dev/null; then
+  if (cd "$root/tree-sitter-robot" && tree-sitter parse --quiet "$work/project/formatted"/* > /dev/null 2>&1); then
+    echo "ok    sample files formatted by Robocop still parse"
+  else
+    echo "FAIL  sample files formatted by Robocop no longer parse:"
+    (cd "$root/tree-sitter-robot" && tree-sitter parse --quiet "$work/project/formatted"/* 2> /dev/null) || true
+    exit 1
+  fi
+else
+  echo "skip  formatted sample files: tree-sitter (tree-sitter-cli) is not installed"
+fi
+
+python3 "$root/tests/integration/tasks.py" "$python" "$launcher" "$work"

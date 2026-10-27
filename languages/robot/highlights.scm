@@ -35,7 +35,7 @@
   (environment_variable)
 ] @variable
 (variable_assignment (variable_name) @variable)
-(variable_assignment [ "${" "}" ] @variable)
+(variable_assignment [ "${" "@{" "&{" "}" ] @variable)
 (variable_key) @property
 (item_access) @property
 (variable_definition [ "=" " =" ] @operator)
@@ -43,6 +43,18 @@
 
 ; Values
 (text_chunk) @string
+(escape_sequence) @string.escape
+
+; Text before `=` that is not an identifier (`https://x.com/?q=1`) stays text.
+((argument_name) @string
+  (#not-match? @string "^[A-Za-z_][A-Za-z0-9_]*$"))
+
+; Named arguments: `timeout=10s`, `level=INFO`, dictionary items `name=bob`.
+((argument
+  (argument_name) @property
+  .
+  "=" @operator)
+  (#match? @property "^[A-Za-z_][A-Za-z0-9_]*$"))
 (return_value) @string
 (inline_python_expression [ "${{" "}}" ] @punctuation.special)
 

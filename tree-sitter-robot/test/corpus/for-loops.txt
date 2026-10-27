@@ -239,6 +239,7 @@ Multiple nesting levels
                             (text_chunk)
                             (scalar_variable
                               (variable_name))
+                            (text_chunk)
                             (text_chunk))
                           consequence: (block
                             (statement
@@ -721,8 +722,10 @@ LONGEST mode with custom fill value
                     (scalar_variable
                       (variable_name)))
                   (argument
+                    (argument_name)
                     (text_chunk))
                   (argument
+                    (argument_name)
                     (text_chunk))))
               body: (block
                 (statement

@@ -11,6 +11,7 @@
         "resource"
       ],
       "injection-regex": "^robot$",
+      "highlights": "../languages/robot/highlights.scm",
       "class-name": "TreeSitterRobot"
     }
   ],

@@ -195,7 +195,8 @@ fn robot_arguments(command: &str, args: &[String]) -> Option<Vec<String>> {
         "robotcode" => {
             // Skip robotcode's own options (e.g. `-p profile`) up to the subcommand.
             let index = args.iter().position(|a| a == "robot" || a == "run")?;
-            &args[index + 1..]
+            let rest = &args[index + 1..];
+            return Some(longname_to_test(unquoted(rest)));
         }
         p if p.starts_with("python") => match args {
             [flag, module, rest @ ..] if flag == "-m" && module == "robot" => rest,
@@ -203,8 +204,48 @@ fn robot_arguments(command: &str, args: &[String]) -> Option<Vec<String>> {
         },
         _ => return None,
     };
-    // Tasks quote arguments for the shell; the debugger passes them directly.
-    Some(rest.iter().map(|a| unquote(a).to_string()).collect())
+    Some(unquoted(rest))
+}
+
+/// Tasks quote arguments for the shell; the debugger passes them directly.
+fn unquoted(args: &[String]) -> Vec<String> {
+    args.iter().map(|a| unquote(a).to_string()).collect()
+}
+
+/// `--by-longname` is an option of `robotcode robot`, which the debugger does
+/// not run: it passes the arguments to Robot Framework itself. Turn it into
+/// Robot Framework's `--test`, escaping the pattern characters so the name
+/// still matches exactly.
+fn longname_to_test(args: Vec<String>) -> Vec<String> {
+    let mut out = Vec::with_capacity(args.len());
+    let mut args = args.into_iter();
+    while let Some(arg) = args.next() {
+        if arg == "--by-longname" || arg == "-bl" {
+            if let Some(name) = args.next() {
+                out.push("--test".to_string());
+                out.push(escape_test_pattern(&name));
+            }
+        } else {
+            out.push(arg);
+        }
+    }
+    out
+}
+
+/// Escapes `*`, `?` and `[` so Robot Framework's `--test` matches them literally.
+fn escape_test_pattern(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    for c in name.chars() {
+        match c {
+            '*' | '?' | '[' => {
+                out.push('[');
+                out.push(c);
+                out.push(']');
+            }
+            _ => out.push(c),
+        }
+    }
+    out
 }
 
 fn env_object(env: Vec<(String, String)>) -> serde_json::Value {
@@ -252,6 +293,87 @@ mod tests {
         assert_eq!(robot_arguments("python3", &strings(&["script.py"])), None);
         assert_eq!(robot_arguments("cargo", &strings(&["test"])), None);
         assert_eq!(robot_arguments("robotcode", &strings(&["analyze"])), None);
+    }
+
+    /// The shipped tasks.json, with comments removed and Zed's task variables
+    /// filled in as for a run button next to `test`.
+    fn shipped_task(label_prefix: &str, test: &str) -> TaskTemplate {
+        let text: String = include_str!("../languages/robot/tasks.json")
+            .lines()
+            .filter(|line| !line.trim_start().starts_with("//"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let tasks: Vec<serde_json::Value> = serde_json::from_str(&text).unwrap();
+        let task = tasks
+            .iter()
+            .find(|t| t["label"].as_str().unwrap().starts_with(label_prefix))
+            .unwrap();
+        let fill = |v: &serde_json::Value| {
+            v.as_str()
+                .unwrap()
+                .replace("$ZED_CUSTOM_robot_test_name", test)
+                .replace("$ZED_FILE", "/p/my.suite.robot")
+                .replace("$ZED_WORKTREE_ROOT", "/p")
+        };
+        TaskTemplate {
+            label: fill(&task["label"]),
+            command: fill(&task["command"]),
+            args: task["args"].as_array().unwrap().iter().map(fill).collect(),
+            env: Vec::new(),
+            cwd: task.get("cwd").map(fill),
+        }
+    }
+
+    #[test]
+    fn run_button_tasks_can_be_debugged() {
+        let task = shipped_task("robot: test", "Login [smoke] works");
+        let scenario = locator_scenario(task, "Debug login".into(), ADAPTER_NAME.into()).unwrap();
+        let config: serde_json::Value = serde_json::from_str(&scenario.config).unwrap();
+        assert_eq!(config["request"], "launch");
+        assert_eq!(config["cwd"], "/p");
+        assert_eq!(
+            config["args"],
+            serde_json::json!([
+                "--name",
+                "Robot",
+                "--test",
+                "Robot.Login [[]smoke] works",
+                "/p/my.suite.robot"
+            ])
+        );
+
+        let suite = shipped_task("robot: suite", "");
+        let scenario = locator_scenario(suite, "Suite".into(), ADAPTER_NAME.into()).unwrap();
+        let config: serde_json::Value = serde_json::from_str(&scenario.config).unwrap();
+        assert_eq!(config["args"], serde_json::json!(["/p/my.suite.robot"]));
+
+        // Tasks that do not run Robot Framework, and other adapters, are left alone.
+        let log = shipped_task("robot: open log.html", "");
+        assert!(locator_scenario(log, "Log".into(), ADAPTER_NAME.into()).is_none());
+        let test = shipped_task("robot: test", "x");
+        assert!(locator_scenario(test, "x".into(), "Debugpy".into()).is_none());
+    }
+
+    #[test]
+    fn exact_test_names_become_escaped_test_patterns() {
+        let args = strings(&[
+            "robot",
+            "--name",
+            "Robot",
+            "--by-longname",
+            "\"Robot.Login [smoke] * works?\"",
+            "\"a.robot\"",
+        ]);
+        assert_eq!(
+            robot_arguments("robotcode", &args),
+            Some(strings(&[
+                "--name",
+                "Robot",
+                "--test",
+                "Robot.Login [[]smoke] [*] works[?]",
+                "a.robot"
+            ]))
+        );
     }
 
     #[test]

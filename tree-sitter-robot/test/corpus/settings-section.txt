@@ -50,6 +50,7 @@ Task Timeout      5 minutes
           (argument
             (text_chunk))
           (argument
+            (argument_name)
             (text_chunk))))
       (setting_statement
         (setting_name)
@@ -184,10 +185,12 @@ Documentation     This is some documentation text
           (continuation
             (ellipses)
             (argument
+              (argument_name)
               (text_chunk)))
           (continuation
             (ellipses)
             (argument
+              (argument_name)
               (text_chunk)))))
       (setting_statement
         (setting_name)
@@ -239,4 +242,5 @@ Library           MyLibrary    config={"debug": true, "timeout": 30}
           (argument
             (text_chunk))
           (argument
+            (argument_name)
             (text_chunk)))))))

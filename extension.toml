@@ -1,10 +1,10 @@
 id = "robot-framework"
 name = "Robot Framework"
-version = "0.4.0"
+version = "0.4.1"
 schema_version = 1
-authors = ["José Mendes <mendesfilho@pm.me>"]
+authors = ["Renato Foot <renato@foot.com>", "José Mendes <mendesfilho@pm.me>"]
 description = "🤖 Robot Framework support: syntax and semantic highlighting, RobotCode language server, Robocop linting and formatting, Robot and Python debugging, test tasks and snippets."
-repository = "https://github.com/mendes-jose/zed-robot.git"
+repository = "https://github.com/Costallat/zed-robot"
 snippets = "snippets/robot framework.json"
 
 # The grammar lives in this repository (tree-sitter-robot/). Zed fetches it
@@ -12,7 +12,7 @@ snippets = "snippets/robot framework.json"
 # the grammar.
 [grammars.robot]
 repository = "https://github.com/Costallat/zed-robot"
-rev = "b20aaf5b56c84967d3f49ca6f69f245be2ca12d0"
+rev = "a0facdfc75ae3a6a31b821a13842959b32312721"
 path = "tree-sitter-robot"
 
 [language_servers.robotcode]

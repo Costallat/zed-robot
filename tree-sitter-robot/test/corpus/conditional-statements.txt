@@ -87,6 +87,7 @@ Test
                         (name_chunk))))))
               alternative: (elseif_statement
                 condition: (argument
+                  (text_chunk)
                   (text_chunk))
                 consequence: (block
                   (statement
@@ -159,6 +160,7 @@ Test
                   (text_chunk)
                   (scalar_variable
                     (variable_name))
+                  (text_chunk)
                   (text_chunk))
                 consequence: (block
                   (statement
@@ -324,16 +326,17 @@ Inline IF/ELSE with assignment
           (statement
             (variable_assignment
               (variable_name)
-              (arguments
-                (argument
-                  (text_chunk))
-                (argument
-                  (text_chunk))
-                (argument
-                  (text_chunk))
-                (argument
-                  (text_chunk))
-                (argument
-                  (text_chunk))
-                (argument
-                  (text_chunk))))))))))
+              (keyword_invocation
+                (keyword
+                  (name_chunk))
+                (arguments
+                  (argument
+                    (text_chunk))
+                  (argument
+                    (text_chunk))
+                  (argument
+                    (text_chunk))
+                  (argument
+                    (text_chunk))
+                  (argument
+                    (text_chunk)))))))))))

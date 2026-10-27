@@ -12,12 +12,16 @@ A [Zed](https://zed.dev) extension for [Robot Framework](https://robotframework.
   variables (`${devices.${type}.ip}`), item access (`${list}[0]`), environment
   variables (`%{HOME}`), `Given`/`When`/`Then` prefixes, translated section
   headers and settings (`Language: pt-BR` and the other languages Robot
-  Framework supports) and inline Python `${{ ... }}` (highlighted as Python).
+  Framework supports), escape sequences (`\n`, `\${not_a_variable}`), the names
+  of named arguments (`timeout=10s`), inline Python `${{ ... }}` and
+  `IF`/`WHILE` conditions written with `$name` variables (both highlighted as
+  Python).
 - **Semantic highlighting** from RobotCode (optional): Robot Framework's
   built-in keywords stand out from library and your own keywords, library
   prefixes (`OS.Create File`), embedded and named arguments are colored (see
   [Editor features to turn on](#editor-features-to-turn-on)).
-- **Language server**: [RobotCode](https://robotcode.io): completion, hover
+- **Language server**: [RobotCode](https://robotcode.io): completion (colored
+  like the code, with each keyword's library), hover
   docs, go to definition, find references, rename, signature help, inlay hints,
   and diagnostics from Robot Framework's own analysis.
 - **Linting**: [Robocop](https://robocop.dev) rules show up as diagnostics as you type (run by RobotCode).
@@ -29,7 +33,8 @@ A [Zed](https://zed.dev) extension for [Robot Framework](https://robotframework.
 - **Run buttons and tasks**: run or debug a single test, a whole suite, a
   folder or everything (see [Running and debugging tests](#running-and-debugging-tests)).
 - **Snippets** for sections, tests, keywords and control structures (see [Snippets](#snippets)).
-- **Editor structure**: code folding, outline panel and breadcrumbs, auto-indent,
+- **Editor structure**: code folding, outline panel and breadcrumbs (with the
+  suite's `Library`/`Resource`/`Variables` imports), auto-indent,
   bracket matching, and function/class text objects for keywords, tests and sections.
 
 Files with the `.robot` and `.resource` extensions are recognised.
@@ -184,8 +189,21 @@ To see what RobotCode cannot resolve, run its analyzer in the project root:
 robotcode analyze code path/to/file.robot | grep -iE "import|DataError"
 ```
 
-For autocomplete and validation while editing `robot.toml`, add RobotCode's
-schema as its first line (read by Zed's TOML language server):
+For autocomplete and validation while editing `robot.toml`, tell Zed's TOML
+language server (Taplo) about RobotCode's schema. `robot.toml` is not in the
+SchemaStore catalog Taplo reads by default. For every `robot.toml` in the
+project, add a `.taplo.toml` at the project root:
+
+```toml
+# .taplo.toml
+[[rule]]
+include = ["**/robot.toml", "**/.robot.toml"]
+
+[rule.schema]
+path = "https://www.robotcode.io/schemas/robot.toml.json"
+```
+
+or, for a single file, put this as its first line:
 
 ```toml
 #:schema https://www.robotcode.io/schemas/robot.toml.json
@@ -346,9 +364,15 @@ To use your own `tasks.json`, give its Robot tasks the tags `robot-test` (the
 test name is in `$ZED_CUSTOM_robot_test_name`) or `robot-suite`. Tasks whose
 command is `robot`, `robotcode robot` or `python -m robot` can be debugged too.
 
+The run button next to a test selects it by its exact name (RobotCode's
+`--by-longname`), so names containing `*`, `?` or `[...]` run just that test.
+For this the suite is named `Robot` in that run's log and report.
+
 **Test results.** `robot: open log.html` and `robot: open report.html` open
-the last run's results in your browser (from the project root, where the tasks
-above write them unless `robot.toml` sets `output-dir`). In a dev container or
+the last run's results in your browser. They look in the `output-dir` set in
+`robot.toml` (or RobotCode's user configuration), else in the project root.
+They need `python` (as in any virtualenv) on the `PATH` of Zed's terminal.
+In a dev container or
 remote project there is no browser to open; run `robot: serve results on port
 8000` instead and open <http://localhost:8000/log.html> with port 8000
 forwarded to your machine.
@@ -476,6 +500,13 @@ language server*. (Add `.robotcode_cache/` to `.gitignore`.)
   highlighted as one piece; the inner `${index}` is not colored separately.
 - Robot Framework 7 no longer accepts singular section headers
   (`*** Test Case ***`), so neither does the grammar.
+- Conditions using `${name}` (`IF    ${count} > 3`) keep the normal Robot
+  highlighting instead of Python's: Robot Framework replaces `${count}` with
+  its value before Python sees the expression, so it is not Python syntax.
+  Write `$count` to get Python highlighting (Robot Framework recommends it too).
+- Zed's text objects only cover functions, classes and comments, so
+  `FOR`/`IF`/`TRY` blocks have none; keywords and tests are functions,
+  sections are classes.
 
 ## Development
 
@@ -483,12 +514,35 @@ language server*. (Add `.robotcode_cache/` to `.gitignore`.)
 rustup target add wasm32-wasip2
 cargo build --release --target wasm32-wasip2
 cargo test
-./scripts/check-queries.sh       # grammar + queries; needs tree-sitter-cli (npm i -g tree-sitter-cli)
-./scripts/integration-test.sh    # RobotCode + Robocop + debugger end to end; needs python3, curl, unzip
+./scripts/check-queries.sh       # grammar, queries, highlights, snippets; needs tree-sitter-cli (npm i -g tree-sitter-cli)
+./scripts/integration-test.sh    # RobotCode + Robocop + debugger + tasks end to end; needs python3, curl, unzip
+./scripts/check-version.sh       # extension.toml and Cargo.toml versions match, CHANGELOG.md has the version
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of the above on every push and pull
 request, plus weekly to catch new RobotCode or Robocop releases.
+
+### Tests
+
+| What | Where | Run by |
+| --- | --- | --- |
+| Rust: settings, server arguments, workspace configuration, virtualenv detection, choosing the newest downloaded RobotCode, debug configurations, task-to-debugger conversion of the shipped `tasks.json`, completion/symbol labels | `src/*.rs` (`#[cfg(test)]`) | `cargo test` |
+| Grammar: parse trees for each construct | `tree-sitter-robot/test/corpus/` | `check-queries.sh` |
+| Highlighting: the color of each construct, as `# ^ capture` assertions under the line | `tree-sitter-robot/test/highlight/` | `check-queries.sh` |
+| Outline, injections, run buttons, auto-close scopes, folds, indents, text objects, label code | `tests/queries/check_captures.py` | `check-queries.sh` |
+| Snippets expand to code that parses | `tests/queries/check_snippets.py` | `check-queries.sh` |
+| Every highlight name (queries, labels, semantic token rules) is one Zed themes style | `tests/queries/check_theme_names.py` | `check-queries.sh` |
+| Incremental parsing after random edits matches a fresh parse | `tree-sitter fuzz` | CI |
+| Robot Framework's own test suites parse no worse than before | `scripts/check-real-world.sh`, `tests/real-world-baseline.txt` | CI |
+| `translations.json` and the outline's import names match the latest Robot Framework | `scripts/generate-translations.py` | CI (fails weekly, warns on pull requests) |
+| Sample files parse without errors and every query compiles | `tests/fixtures/` | `check-queries.sh` |
+| RobotCode as the extension runs it: diagnostics, formatting, hover, completion items as `labels.rs` reads them, semantic tokens, Robot and Python breakpoints, debugging one test from the run button | `tests/integration/smoke.py` | `integration-test.sh` |
+| Sample files formatted by Robocop still parse | `integration-test.sh` | `integration-test.sh` |
+| The shipped tasks: run button runs exactly one test, results open from `output-dir` | `tests/integration/tasks.py` | `integration-test.sh`; CI also on macOS and on Windows (PowerShell 5.1 and 7) |
+
+When adding grammar syntax, add a corpus test and a highlight test; for a new
+query capture, a case in `check_captures.py`; for a new snippet, its context in
+`check_snippets.py`.
 
 ### Changing the grammar
 
@@ -505,20 +559,50 @@ from GitHub at the commit pinned in `extension.toml`, so a change takes two comm
 
 CI fails if `src/` is not regenerated or `extension.toml` points at an older grammar.
 
+### Releasing
+
+Note each change under *Unreleased* in [`CHANGELOG.md`](CHANGELOG.md) as it
+lands. To release:
+
+1. Pick the version ([semver](https://semver.org): a new setting or feature
+   is a minor version, a fix a patch) and set it in both `extension.toml` and
+   `Cargo.toml`. Run `cargo build` so `Cargo.lock` follows.
+2. In `CHANGELOG.md`, rename *Unreleased* to `## <version> - <date>` and
+   start a new empty *Unreleased* section above it.
+3. If the grammar changed, make sure `extension.toml` points at it
+   (`scripts/pin-grammar.sh --check`).
+4. Commit, merge to `main`, and tag the commit: `git tag v<version> && git push --tags`.
+5. Publish it in Zed's extension registry with a pull request to
+   [zed-industries/extensions](https://github.com/zed-industries/extensions):
+   point the `extensions/robot-framework` submodule at the tagged commit and
+   set the same `version` for `robot-framework` in `extensions.toml`. The
+   first release adds the submodule and the entry instead. See
+   [Publishing extensions](https://zed.dev/docs/extensions/developing-extensions#publishing-your-extension).
+
+`scripts/check-version.sh` (also run by CI) fails when the two versions differ
+or the changelog has no section for the version.
+
 ### Structure
 
 - `extension.toml`: extension manifest (grammar, language server, debugger, capabilities)
 - `src/lib.rs`: extension entry points
 - `src/robotcode.rs`: finds, downloads and launches RobotCode; installs Robocop
 - `src/debugger.rs`: debug adapter, `debug.json` handling, task-to-debug conversion
+- `src/labels.rs`: colors of completion items and symbols
 - `tree-sitter-robot/`: the grammar
 - `languages/robot/`: language configuration, tree-sitter queries, tasks and
   semantic token rules (`semantic_token_rules.json`)
 - `snippets/`: snippets
 - `debug_adapter_schemas/RobotCode.json`: options accepted in `debug.json`
 - `tests/fixtures/`: sample files the queries are checked against
-- `tests/integration/`: end-to-end check of RobotCode as the extension runs it
+- `tests/integration/`: end-to-end checks of RobotCode and of the tasks as the extension runs them
+- `tests/queries/`: checks of query captures and snippets
 - `scripts/`: checks used by CI and the grammar pinning script
+
+## Maintainers
+
+Maintained by Renato Foot. Originally created by José Mendes
+([mendes-jose/zed-robot](https://github.com/mendes-jose/zed-robot)).
 
 ## Contributing
 
